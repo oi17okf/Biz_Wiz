@@ -20,6 +20,7 @@ typedef struct window {
     int y_start;
     int y_end;
     int border;
+    int focus;
 } window;
 
 rapidcsv::Document doc("example.csv"); //temporary
@@ -84,6 +85,20 @@ int inside_border(const window &w, int x, int y) {
     }
 }
 
+//Todo - make it so only 1 window can be focused (z axis needed for good solution)
+void update_window_focus(std::vector<window> &windows, int mouse_x, int mouse_y) {
+
+    for (int i = 0; i < windows.size(); i++) {
+        if (inside_border(windows[i], mouse_x, mouse_y)) {
+            windows[i].focus = 1;
+
+        } else {
+            windows[i].focus = 0;
+        }
+    }
+
+}
+
 //Todo - make size size_percent
 DrawTextPercent(const window &w, const std::string &s, float x_percent, float y_percent, int size, Color c) {
 
@@ -102,14 +117,20 @@ DrawTextPercent(const window &w, const std::string &s, float x_percent, float y_
 
 }
 
-void render_border(const window &w) {
+void render_border(const window &w, Color c) {
 
-    DrawRectangleLinesEx(Rectangle{(float)w.x_start, (float)w.y_start, (float)w.x_end - w.x_start, (float)w.y_end - w.y_start}, w.border, BLACK);
+    DrawRectangleLinesEx(Rectangle{(float)w.x_start, (float)w.y_start, (float)w.x_end - w.x_start, (float)w.y_end - w.y_start}, w.border, c);
 
 }
 
-void render_csv(const window &w) {
-    render_border(w);
+void render_csv(const window &w, int start_index) {
+
+    if (w.focus) {
+        render_border(w, BLACK);
+    } else {
+        render_border(w, WHITE);
+    }
+
 
     int csv_len = doc.GetRowCount();
     std::vector<std::string> csv_names = doc.GetColumnNames();
@@ -120,10 +141,10 @@ void render_csv(const window &w) {
     std::string s2 = csv_names[0] + " - " + csv_names[1] + " - " + csv_names[2] + " - " + csv_names[3];
     DrawTextPercent(w, s2, 0.025, 0.1, 20, BLUE);
 
-    for (int i = 0; i < csv_len; i++) {
+    for (int i = start_index; i < csv_len; i++) {
         std::vector<std::string> row = doc.GetRow<std::string>(i);
         std::string s3 = row[0] + " - " + row[1] + " - " + row[2] + " - " + row[3];
-        DrawTextPercent(w, s3, 0.025, 0.15 + (0.04 * i), 18, SKYBLUE);
+        DrawTextPercent(w, s3, 0.025, 0.15 + (0.04 * (i - start_index)), 18, SKYBLUE);
     }
 
 }
@@ -151,12 +172,15 @@ int main() {
     int screenWidth = 800;
     int screenHeight = 450;
 
+
+
     window w;
     w.x_start = 0;
     w.x_end = 800;
     w.y_start = 0;
     w.y_end = 450;
     w.border = 5;
+    w.focus = 0;
 
     window w1;
     w1.x_start = 500;
@@ -164,6 +188,11 @@ int main() {
     w1.y_start = 200;
     w1.y_end = 400;
     w1.border = 2;
+    w1.focus = 0;
+
+    std::vector<window> windows;
+    windows.push_back(w);
+    windows.push_back(w1);
 
     InitWindow(screenWidth, screenHeight, "Biz Wiz");
 
@@ -171,28 +200,50 @@ int main() {
     create_example_list(doc, list);
     print_example_list(list);
 
-    
+    int mouse_x = 0;
+    int mouse_y = 0;
+
+    int csv_index1 = 0; //used for rendering csv
+    int csv_index2 = 0;
 
     while (!WindowShouldClose()) {
-        // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
+        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Update Logic &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+        mouse_x = GetMouseX();                              
+        mouse_y = GetMouseY();   
 
-        // Draw
-        //----------------------------------------------------------------------------------
+        update_window_focus(windows, mouse_x, mouse_y);
+
+
+        float scroll = -1 * GetMouseWheelMove();
+
+        if (windows[0].focus) {
+
+            csv_index1 += scroll;
+            if (csv_index1 < 0) { csv_index1 = 0; }
+            if (csv_index1 > doc.GetRowCount() - 1) { csv_index1 = doc.GetRowCount() - 1; }
+        }
+
+        if (windows[1].focus) {
+
+            csv_index2 += scroll;
+            if (csv_index2 < 0) { csv_index2 = 0; }
+            if (csv_index2 > doc.GetRowCount() - 1) { csv_index2 = doc.GetRowCount() - 1; }
+        }
+
+        //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Draw @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
         BeginDrawing();
+
+      
         
-        render_csv(w);
-        render_csv(w1);
+
+
+        render_csv(windows[0], csv_index1);
+        render_csv(windows[1], csv_index2);
 
 
         ClearBackground(RAYWHITE);
-
-
-
         EndDrawing();
-        //----------------------------------------------------------------------------------
     }
 
     CloseWindow();   
