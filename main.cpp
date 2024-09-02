@@ -86,7 +86,7 @@ int main() {
     int screenWidth = 800;
     int screenHeight = 450;
 
-    InitWindow(screenWidth, screenHeight, "Hello Raylib");
+    InitWindow(screenWidth, screenHeight, "Biz Wiz");
 
     std::vector<data> list;
     create_example_list(doc, list);
