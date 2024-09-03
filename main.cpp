@@ -23,6 +23,9 @@ typedef struct window {
     int focus;
 } window;
 
+
+std::string state = "render_csv";
+
 rapidcsv::Document doc("example.csv"); //temporary
 
 //Filling a list of structs is fine for testdata, but will have performance problems later.
@@ -149,6 +152,85 @@ void render_csv(const window &w, int start_index) {
 
 }
 
+float calculate_avg(const std::vector<int>& values) {
+
+    float sum = 0;
+    for (int val : values) {
+        sum += val;
+    }
+
+    return sum / values.size();
+}
+
+float calculate_median(std::vector<int> values) {
+
+    std::sort(values.begin(), values.end());
+
+    int n = values.size();
+    if (n % 2 == 0) {
+        return (values[n / 2 - 1] + values[n / 2]) / 2.0;
+    } else {
+        return values[n / 2];
+    }
+}
+
+int calculate_mode(const std::vector<int>& values) {
+    std::map<int, int> frequencyMap;
+    for (int val : values) {
+        frequencyMap[val]++;
+    }
+
+    int mode = values[0];
+    int maxCount = 0;
+
+    for (const auto& pair : frequencyMap) {
+        if (pair.second > maxCount) {
+            maxCount = pair.second;
+            mode = pair.first;
+        }
+    }
+
+    return mode;
+}
+
+render_stats(const window &w) {
+
+    if (w.focus) {
+        render_border(w, BLACK);
+    } else {
+        render_border(w, WHITE);
+    }
+
+    
+    int len = doc.GetRowCount();
+    std::string s1 = "File contains " + std::to_string(len) + " rows.";
+    DrawTextPercent(w, s1, 0.025, 0.05, 20, BLUE);
+
+    std::vector<std::string> csv_names = doc.GetColumnNames();
+    std::string s2 = csv_names[0] + " - " + csv_names[1] + " - " + csv_names[2] + " - " + csv_names[3];
+    DrawTextPercent(w, s2, 0.025, 0.1, 20, BLUE);
+
+
+    std::vector<int> ages = doc.GetColumn<int>("Age");
+    float avg    = calculate_avg(ages);
+    float median = calculate_median(ages);
+    int mode     = calculate_mode(ages);
+    std::string s3 = "Age avg value is:    " + std::to_string(avg);
+    std::string s4 = "Age median value is: " + std::to_string(median);
+    std::string s5 = "Age mode value is:   " + std::to_string(mode);
+    DrawTextPercent(w, s3, 0.025, 0.15, 20, BLUE);
+    DrawTextPercent(w, s4, 0.025, 0.20, 20, BLUE);
+    DrawTextPercent(w, s5, 0.025, 0.25, 20, BLUE);
+
+}
+
+void render_status_bar(std::string state) {
+    std::string s = "Current state: " + state;
+    DrawText(s.c_str(), 5, 5, 16, BROWN);
+    std::string s1 = "Press 1-4 to change state";
+    DrawText(s1.c_str(), 5, 20, 10, BROWN);
+}
+
 
 
 int main() {
@@ -176,17 +258,17 @@ int main() {
 
     window w;
     w.x_start = 0;
-    w.x_end = 800;
-    w.y_start = 0;
+    w.x_end = 400;
+    w.y_start = 50;
     w.y_end = 450;
     w.border = 5;
     w.focus = 0;
 
     window w1;
-    w1.x_start = 500;
-    w1.x_end = 700;
-    w1.y_start = 200;
-    w1.y_end = 400;
+    w1.x_start = 400;
+    w1.x_end = 800;
+    w1.y_start = 50;
+    w1.y_end = 450;
     w1.border = 2;
     w1.focus = 0;
 
@@ -209,7 +291,20 @@ int main() {
     while (!WindowShouldClose()) {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Update Logic &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         mouse_x = GetMouseX();                              
-        mouse_y = GetMouseY();   
+        mouse_y = GetMouseY();  
+        if (IsKeyPressed(KEY_ONE)) {
+            state = "render_csv";
+        } 
+        if (IsKeyPressed(KEY_TWO)) {
+            state = "stats_csv";
+        } 
+        if (IsKeyPressed(KEY_THREE)) {
+            state = "something_csv";
+        } 
+        if (IsKeyPressed(KEY_FOUR)) {
+            state = "???_csv";
+        } 
+
 
         update_window_focus(windows, mouse_x, mouse_y);
 
@@ -236,10 +331,20 @@ int main() {
 
       
         
-
+        render_status_bar(state);
 
         render_csv(windows[0], csv_index1);
-        render_csv(windows[1], csv_index2);
+
+        if (state == "render_csv") {
+            render_csv(windows[1], csv_index2);
+        } else if (state == "stats_csv")  {
+            render_stats(windows[1]);
+        } else if (state == "something_csv")  {
+
+        } else if (state == "???_csv") {
+
+        }
+        
 
 
         ClearBackground(RAYWHITE);
