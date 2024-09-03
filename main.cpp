@@ -16,26 +16,31 @@ typedef struct data {
 enum WindowState {
     DATA,  
     SUMMARY,  
-    IDK    
+    TIMELINE    
 };
 
 typedef struct data_window {
-    int scroll_index;
+    int scroll_index = 0;
+    int length = 0;
 } data_window;
+
+typedef struct timeline_window {
+    int scroll_index = 0;
+    int min = 0;
+    int max = 0;
+} timeline_window;
 
 typedef struct window {
     int x_start;
     int x_end;
     int y_start;
     int y_end;
-    int border;
-    int focus;
+    int border = 0;
+    int focus = 0;
     WindowState state;
     data_window dw;
+    timeline_window tw;
 } window;
-
-
-std::string state = "render_csv";
 
 rapidcsv::Document doc("example.csv"); //temporary
 
@@ -163,6 +168,18 @@ void render_csv(const window &w) {
 
 }
 
+void calculate_min_max(const std::vector<int> &values, int &min, int &max) {
+
+    min = 99999; //todo fix
+    max = 0;
+
+    for (int val : values) {
+        if (val < min) { min = val; }
+        if (val > max) { max = val; }
+    }
+
+}
+
 float calculate_avg(const std::vector<int>& values) {
 
     float sum = 0;
@@ -236,12 +253,53 @@ render_stats(const window &w) {
 
 }
 
+float Interpolate(float percent, int min, int max) {
+
+    int len = max - min;
+    int val = min + (len * percent);
+    return val;
+
+}
+
+DrawLinePercent(const window &w, float x_start_p, float y_start_p, float x_end_p, float y_end_p) {
+
+    float start_x = Interpolate(x_start_p, w.x_start, w.x_end);
+    float end_x   = Interpolate(x_end_p,   w.x_start, w.x_end);
+    float start_y = Interpolate(y_start_p, w.y_start, w.y_end);
+    float end_y   = Interpolate(y_end_p  , w.y_start, w.y_end);
+
+    DrawLineEx(Vector2{start_x, start_y}, Vector2{end_x, end_y}, 3, BLACK);  
+    
+}
+
+render_timeline(const window &w) {
+
+    if (w.focus) {
+        render_border(w, BLACK);
+    } else {
+        render_border(w, WHITE);
+    }
+
+    DrawLinePercent(w, 0.1, 0.8, 0.9, 0.8);
+    DrawLinePercent(w, 0.1, 0.75, 0.1, 0.85);
+    DrawLinePercent(w, 0.9, 0.75, 0.9, 0.85);
+
+   // w.tw.min
+    int len = doc.GetRowCount();
+    std::string s1 = "File contains " + std::to_string(len) + " rows.";
+    DrawTextPercent(w, s1, 0.025, 0.05, 20, BLUE);
+
+}
+
+/* 
 void render_status_bar(std::string state) {
     std::string s = "Current state: " + state;
     DrawText(s.c_str(), 5, 5, 16, BROWN);
     std::string s1 = "Press 1-4 to change state";
     DrawText(s1.c_str(), 5, 20, 10, BROWN);
 }
+
+*/
 
 
 
@@ -260,7 +318,6 @@ int main() {
     w.y_start = 50;
     w.y_end = 450;
     w.border = 5;
-    w.focus = 0;
     w.state = SUMMARY;
 
     window w1;
@@ -269,7 +326,6 @@ int main() {
     w1.y_start = 50;
     w1.y_end = 450;
     w1.border = 2;
-    w1.focus = 0;
     w.state = DATA;
 
     std::vector<window> windows;
@@ -303,18 +359,19 @@ int main() {
             } else if (IsKeyPressed(KEY_TWO)) {
                 w.state = SUMMARY;
             } else if (IsKeyPressed(KEY_THREE)) {
-                w.state = IDK;
+                w.state = TIMELINE;
             } 
      
             switch (w.state) {
 
                 case DATA: {
 
-                    float scroll = -1 * GetMouseWheelMove();
-                    w.dw.scroll_index += scroll;
+                    w.dw.length = doc.GetRowCount(); //should be moved to some kind of init function
+
+                    w.dw.scroll_index += -1 * GetMouseWheelMove();
 
                     if (w.dw.scroll_index < 0) { w.dw.scroll_index = 0; }
-                    if (w.dw.scroll_index > doc.GetRowCount() - 1) { w.dw.scroll_index = doc.GetRowCount() - 1; }
+                    if (w.dw.scroll_index > w.dw.length - 1) { w.dw.scroll_index = w.dw.length - 1; }
 
                     break;
                 }
@@ -324,7 +381,13 @@ int main() {
                     break;    
                 }
 
-                case IDK: {
+                case TIMELINE: {
+
+                    int min;
+                    int max;
+                    calculate_min_max(doc.GetColumn<int>("Age"), min, max);
+                    w.tw.min = min < 5 ? 0 : min - 5;
+                    w.tw.max = max + 5;
 
                     break;
                 }
@@ -336,7 +399,7 @@ int main() {
 
         BeginDrawing();
 
-        render_status_bar(state);
+        //render_status_bar(state);
 
         for (window &w : windows) {
 
@@ -354,8 +417,8 @@ int main() {
                     break;    
                 }
 
-                case IDK: {
-
+                case TIMELINE: {
+                    render_timeline(w);
                     break;
                 }
             
