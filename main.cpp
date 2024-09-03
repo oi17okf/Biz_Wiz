@@ -13,6 +13,15 @@ typedef struct data {
     std::string work;
 } data; 
 
+enum WindowState {
+    DATA,  
+    SUMMARY,  
+    IDK    
+};
+
+typedef struct data_window {
+    int scroll_index;
+} data_window;
 
 typedef struct window {
     int x_start;
@@ -21,6 +30,8 @@ typedef struct window {
     int y_end;
     int border;
     int focus;
+    WindowState state;
+    data_window dw;
 } window;
 
 
@@ -126,7 +137,7 @@ void render_border(const window &w, Color c) {
 
 }
 
-void render_csv(const window &w, int start_index) {
+void render_csv(const window &w) {
 
     if (w.focus) {
         render_border(w, BLACK);
@@ -144,10 +155,10 @@ void render_csv(const window &w, int start_index) {
     std::string s2 = csv_names[0] + " - " + csv_names[1] + " - " + csv_names[2] + " - " + csv_names[3];
     DrawTextPercent(w, s2, 0.025, 0.1, 20, BLUE);
 
-    for (int i = start_index; i < csv_len; i++) {
+    for (int i = w.dw.scroll_index; i < csv_len; i++) {
         std::vector<std::string> row = doc.GetRow<std::string>(i);
         std::string s3 = row[0] + " - " + row[1] + " - " + row[2] + " - " + row[3];
-        DrawTextPercent(w, s3, 0.025, 0.15 + (0.04 * (i - start_index)), 18, SKYBLUE);
+        DrawTextPercent(w, s3, 0.025, 0.15 + (0.04 * (i - w.dw.scroll_index)), 18, SKYBLUE);
     }
 
 }
@@ -175,6 +186,7 @@ float calculate_median(std::vector<int> values) {
 }
 
 int calculate_mode(const std::vector<int>& values) {
+
     std::map<int, int> frequencyMap;
     for (int val : values) {
         frequencyMap[val]++;
@@ -235,26 +247,12 @@ void render_status_bar(std::string state) {
 
 int main() {
 
-    // Access data by column name
-    std::vector<std::string> names = doc.GetColumn<std::string>("Name");
-    std::vector<int> ages = doc.GetColumn<int>("Age");
-
-    for (size_t i = 0; i < names.size(); ++i) {
-        std::cout << "Name: " << names[i] << ", Age: " << ages[i] << std::endl;
-    }
-
-    float avg_age = calculate_avg_age(doc);
-    std::cout << "Avg Age: " << avg_age << std::endl;
-
-    // Modify and save data
+    // How to change/save data in csv
     //doc.SetCell<std::string>(0, 1, "NewName");
     //doc.Save();
 
-
     int screenWidth = 800;
     int screenHeight = 450;
-
-
 
     window w;
     w.x_start = 0;
@@ -263,6 +261,7 @@ int main() {
     w.y_end = 450;
     w.border = 5;
     w.focus = 0;
+    w.state = SUMMARY;
 
     window w1;
     w1.x_start = 400;
@@ -271,6 +270,7 @@ int main() {
     w1.y_end = 450;
     w1.border = 2;
     w1.focus = 0;
+    w.state = DATA;
 
     std::vector<window> windows;
     windows.push_back(w);
@@ -285,67 +285,82 @@ int main() {
     int mouse_x = 0;
     int mouse_y = 0;
 
-    int csv_index1 = 0; //used for rendering csv
-    int csv_index2 = 0;
-
     while (!WindowShouldClose()) {
+
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Update Logic &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
         mouse_x = GetMouseX();                              
         mouse_y = GetMouseY();  
-        if (IsKeyPressed(KEY_ONE)) {
-            state = "render_csv";
-        } 
-        if (IsKeyPressed(KEY_TWO)) {
-            state = "stats_csv";
-        } 
-        if (IsKeyPressed(KEY_THREE)) {
-            state = "something_csv";
-        } 
-        if (IsKeyPressed(KEY_FOUR)) {
-            state = "???_csv";
-        } 
-
 
         update_window_focus(windows, mouse_x, mouse_y);
 
+        for (window &w : windows) {
 
-        float scroll = -1 * GetMouseWheelMove();
+            if (w.focus == 0) { continue; }
 
-        if (windows[0].focus) {
+            if (IsKeyPressed(KEY_ONE)) {
+                w.state = DATA;
+            } else if (IsKeyPressed(KEY_TWO)) {
+                w.state = SUMMARY;
+            } else if (IsKeyPressed(KEY_THREE)) {
+                w.state = IDK;
+            } 
+     
+            switch (w.state) {
 
-            csv_index1 += scroll;
-            if (csv_index1 < 0) { csv_index1 = 0; }
-            if (csv_index1 > doc.GetRowCount() - 1) { csv_index1 = doc.GetRowCount() - 1; }
-        }
+                case DATA: {
 
-        if (windows[1].focus) {
+                    float scroll = -1 * GetMouseWheelMove();
+                    w.dw.scroll_index += scroll;
 
-            csv_index2 += scroll;
-            if (csv_index2 < 0) { csv_index2 = 0; }
-            if (csv_index2 > doc.GetRowCount() - 1) { csv_index2 = doc.GetRowCount() - 1; }
+                    if (w.dw.scroll_index < 0) { w.dw.scroll_index = 0; }
+                    if (w.dw.scroll_index > doc.GetRowCount() - 1) { w.dw.scroll_index = doc.GetRowCount() - 1; }
+
+                    break;
+                }
+
+                case SUMMARY: {
+
+                    break;    
+                }
+
+                case IDK: {
+
+                    break;
+                }
+
+            }
         }
 
         //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Draw @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         BeginDrawing();
 
-      
-        
         render_status_bar(state);
 
-        render_csv(windows[0], csv_index1);
+        for (window &w : windows) {
 
-        if (state == "render_csv") {
-            render_csv(windows[1], csv_index2);
-        } else if (state == "stats_csv")  {
-            render_stats(windows[1]);
-        } else if (state == "something_csv")  {
+            switch (w.state) {
 
-        } else if (state == "???_csv") {
+                case DATA: {
 
+                    render_csv(w);
+                    break;
+                }
+
+                case SUMMARY: {
+
+                    render_stats(w);
+                    break;    
+                }
+
+                case IDK: {
+
+                    break;
+                }
+            
+            }
         }
-        
-
 
         ClearBackground(RAYWHITE);
         EndDrawing();
