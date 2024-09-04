@@ -294,7 +294,7 @@ void DrawTimelineNode(const window &w, float x_pos, float y_timeline, std::strin
     DrawCirclePercent(w, x_pos, node_y, BROWN);
     DrawLinePercent(w, x_pos, node_y + 0.05, x_pos, y_timeline, 1, BROWN);
 
-    DrawTextPercent(w, name, x_pos, node_y, 6, GREEN);
+    DrawTextPercent(w, name, x_pos - 0.04, node_y - 0.01, 6, GREEN);
 
 }
 
@@ -356,7 +356,7 @@ int main() {
     w.y_start = 50;
     w.y_end = 450;
     w.border = 5;
-    w.state = SUMMARY;
+    w.state = DATA;
 
     window w1;
     w1.x_start = 400;
@@ -364,7 +364,7 @@ int main() {
     w1.y_start = 50;
     w1.y_end = 450;
     w1.border = 2;
-    w.state = DATA;
+    w1.state = TIMELINE;
 
     std::vector<window> windows;
     windows.push_back(w);
