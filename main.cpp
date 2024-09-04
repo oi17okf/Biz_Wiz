@@ -13,6 +13,17 @@ typedef struct data {
     std::string work;
 } data; 
 
+typedef struct activity {
+    std::string type;
+    int timestamp;
+} activity;
+
+typedef struct traces {
+    std::vector<activity> events;
+} traces;
+
+std::map<int, traces> eventlog;
+
 enum WindowState {
     DATA,  
     SUMMARY,  
@@ -220,6 +231,21 @@ int calculate_mode(const std::vector<int>& values) {
     }
 
     return mode;
+}
+
+float calculate_variance(const std::vector<int> &values) {
+
+    float avg = calculate_avg(values);
+    float variance = 0.0;
+
+    for (int val : values) {
+        variance += (val - avg) * (val - avg);
+    }
+
+    variance = variance / values.size();
+
+    return variance;
+
 }
 
 render_stats(const window &w) {
