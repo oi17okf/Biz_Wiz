@@ -261,16 +261,42 @@ float Interpolate(float percent, int min, int max) {
 
 }
 
-DrawLinePercent(const window &w, float x_start_p, float y_start_p, float x_end_p, float y_end_p) {
+float GetPercent(float value, float min, float max) {
+
+    return (value - min) / (max - min);
+
+}
+
+void DrawCirclePercent(const window &w, float x_percent, float y_percent, Color c) {
+
+    float x = Interpolate(x_percent, w.x_start, w.x_end);
+    float y = Interpolate(y_percent, w.y_start, w.y_end);
+    DrawCircleLines(x, y, 20, c);
+
+}
+
+void DrawLinePercent(const window &w, float x_start_p, float y_start_p, float x_end_p, float y_end_p, int size, Color c) {
 
     float start_x = Interpolate(x_start_p, w.x_start, w.x_end);
     float end_x   = Interpolate(x_end_p,   w.x_start, w.x_end);
     float start_y = Interpolate(y_start_p, w.y_start, w.y_end);
     float end_y   = Interpolate(y_end_p  , w.y_start, w.y_end);
 
-    DrawLineEx(Vector2{start_x, start_y}, Vector2{end_x, end_y}, 3, BLACK);  
+    DrawLineEx(Vector2{start_x, start_y}, Vector2{end_x, end_y}, size, c);  
     
 }
+
+void DrawTimelineNode(const window &w, float x_pos, float y_timeline, std::string name, int age) {
+
+    float node_y = y_timeline - 0.5;
+    name += " " + std::to_string(age);
+    DrawCirclePercent(w, x_pos, node_y, BROWN);
+    DrawLinePercent(w, x_pos, node_y + 0.05, x_pos, y_timeline, 1, BROWN);
+    DrawTextPercent(w, name, x_pos, node_y, 6, GREEN);
+
+}
+
+
 
 render_timeline(const window &w) {
 
@@ -280,14 +306,24 @@ render_timeline(const window &w) {
         render_border(w, WHITE);
     }
 
-    DrawLinePercent(w, 0.1, 0.8, 0.9, 0.8);
-    DrawLinePercent(w, 0.1, 0.75, 0.1, 0.85);
-    DrawLinePercent(w, 0.9, 0.75, 0.9, 0.85);
+    DrawLinePercent(w, 0.1, 0.8, 0.9, 0.8, 3, BLACK);
+    DrawLinePercent(w, 0.1, 0.75, 0.1, 0.85, 2, BLACK);
+    DrawLinePercent(w, 0.9, 0.75, 0.9, 0.85, 2, BLACK);
+    std::string s_min = std::to_string(w.tw.min);
+    std::string s_max = std::to_string(w.tw.max);
+    DrawTextPercent(w, s_min, 0.08, 0.7, 12, GREEN);
+    DrawTextPercent(w, s_max, 0.88, 0.7, 12, GREEN);
 
-   // w.tw.min
-    int len = doc.GetRowCount();
-    std::string s1 = "File contains " + std::to_string(len) + " rows.";
-    DrawTextPercent(w, s1, 0.025, 0.05, 20, BLUE);
+    std::vector<int> ages = doc.GetColumn<int>("Age");
+    std::vector<std::string> names = doc.GetColumn<std::string>("Name");
+
+    for (int i = 0; i < ages.size(); i++) {
+
+        float p = GetPercent((float)ages[i], (float)w.tw.min, (float)w.tw.max);
+        //needs to add relative to timeline
+        DrawTimelineNode(w, p, 0.8, names[i], ages[i]); 
+    }
+    
 
 }
 
