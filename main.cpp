@@ -42,7 +42,7 @@ typedef struct window {
     timeline_window tw;
 } window;
 
-rapidcsv::Document doc("example.csv"); //temporary
+rapidcsv::Document doc("example2.csv"); //temporary
 
 //Filling a list of structs is fine for testdata, but will have performance problems later.
 
@@ -290,8 +290,10 @@ void DrawTimelineNode(const window &w, float x_pos, float y_timeline, std::strin
 
     float node_y = y_timeline - 0.5;
     name += " " + std::to_string(age);
+    //std::cout << name << std::endl;
     DrawCirclePercent(w, x_pos, node_y, BROWN);
     DrawLinePercent(w, x_pos, node_y + 0.05, x_pos, y_timeline, 1, BROWN);
+
     DrawTextPercent(w, name, x_pos, node_y, 6, GREEN);
 
 }
