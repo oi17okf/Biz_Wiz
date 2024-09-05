@@ -1,6 +1,7 @@
 #include <iostream>
 #include "rapidcsv.h"
 #include "raylib.h"
+#include "tinyxml2.h"
 
 // Note - RapidCSV doesn't support retrieving mixed data types directly.
 
@@ -56,6 +57,47 @@ typedef struct window {
 rapidcsv::Document doc("example2.csv"); //temporary
 
 //Filling a list of structs is fine for testdata, but will have performance problems later.
+
+using namespace tinyxml2;
+
+void parseXES(const char* filename) {
+
+    XMLDocument doc;
+
+    XMLError eResult = doc.LoadFile(filename);
+    if (eResult != XML_SUCCESS) {
+        std::cerr << "Error loading file: " << eResult << std::endl;
+        return;
+    }
+
+    XMLElement* root = doc.FirstChildElement("log");
+    if (root == nullptr) {
+        std::cerr << "No <log> element found in XES file" << std::endl;
+        return;
+    }
+
+    int count = 0;
+
+    for (XMLElement* trace = root->FirstChildElement("trace"); trace != nullptr; trace = trace->NextSiblingElement("trace")) {
+        //if (count >= 10) { break; }
+
+        for (XMLElement* event = trace->FirstChildElement("event"); event != nullptr; event = event->NextSiblingElement("event")) {
+        
+            for (XMLElement* attribute = event->FirstChildElement(); attribute != nullptr; attribute = attribute->NextSiblingElement()) {
+                const char* attributeName = attribute->Name();
+                const char* key = attribute->Attribute("key");
+                const char* value = attribute->Attribute("value");
+
+                if (key != nullptr && value != nullptr) {
+                    //std::cout << "    " << attributeName << ": " << key << " = " << value << std::endl;
+                }
+            }
+        }
+        count++;
+    }
+
+    std::cout << "Number of events: " << count << std::endl;
+}
 
 void fill_example(const std::vector<std::string> &row, data &d) {
 
@@ -404,6 +446,9 @@ int main() {
 
     int mouse_x = 0;
     int mouse_y = 0;
+
+    const char* filename = "RequestForPayment.xes_";
+    parseXES(filename);
 
     while (!WindowShouldClose()) {
 

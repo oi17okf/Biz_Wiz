@@ -2,9 +2,11 @@
 the future of business...
 
 ## Compile & Run
-To compile for windows run the command `g++ main.cpp -std=c++11 -lraylib -lopengl32 -lgdi32 -lwinmm`
+To compile for windows run the command `g++ main.cpp tinyxml2.cpp -std=c++11 -lraylib -lopengl32 -lgdi32 -lwinmm`
 
-You will also need to have downloaded raylib, compiled it, and added it to the include/link path.
+The project depends on raylib and tinyxml. Tinyxml is included in the project. but raylib is not.
+
+So you will have to download raylib, compile it, and add it to the include/link path.
 
 Then just run a.exe and a windows should appear like this! ![Rendering vsn in raylib](./pic.JPG) 
 
