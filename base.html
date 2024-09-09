@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Your Game Title</title>
+</head>
+<body>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    <script type="text/javascript">
+        var Module = {
+            preRun: [],
+            postRun: [],
+            canvas: document.getElementById('canvas'),
+            onRuntimeInitialized: function() {
+                // Any initialization code you want to add
+            }
+        };
+    </script>
+    <script src="index.js"></script>
+</body>
+</html>

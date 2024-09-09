@@ -2,6 +2,9 @@
 #include "rapidcsv.h"
 #include "raylib.h"
 #include "tinyxml2.h"
+#include <vector>
+#include <string>
+#include <algorithm>
 
 // Note - RapidCSV doesn't support retrieving mixed data types directly.
 
@@ -60,43 +63,53 @@ rapidcsv::Document doc("example2.csv"); //temporary
 
 using namespace tinyxml2;
 
-void parseXES(const char* filename) {
+XMLElement* open_xes(std::string filename, XMLDocument &doc) {
 
-    XMLDocument doc;
-
-    XMLError eResult = doc.LoadFile(filename);
+    XMLError eResult = doc.LoadFile(filename.c_str());
     if (eResult != XML_SUCCESS) {
         std::cerr << "Error loading file: " << eResult << std::endl;
-        return;
+        return nullptr;
     }
 
     XMLElement* root = doc.FirstChildElement("log");
     if (root == nullptr) {
         std::cerr << "No <log> element found in XES file" << std::endl;
-        return;
+        return nullptr;
     }
 
-    int count = 0;
+    return root;
+
+}
+
+struct xes_data {
+
+    int traces;
+    int events;
+    std::vector<std::string> keys;
+
+};
+
+void parse_xes(XMLElement* root, xes_data &data) {
 
     for (XMLElement* trace = root->FirstChildElement("trace"); trace != nullptr; trace = trace->NextSiblingElement("trace")) {
-        //if (count >= 10) { break; }
 
         for (XMLElement* event = trace->FirstChildElement("event"); event != nullptr; event = event->NextSiblingElement("event")) {
+
+            data.events++;
         
             for (XMLElement* attribute = event->FirstChildElement(); attribute != nullptr; attribute = attribute->NextSiblingElement()) {
                 const char* attributeName = attribute->Name();
                 const char* key = attribute->Attribute("key");
                 const char* value = attribute->Attribute("value");
 
-                if (key != nullptr && value != nullptr) {
-                    //std::cout << "    " << attributeName << ": " << key << " = " << value << std::endl;
+                if (std::find(data.keys.begin(), data.keys.end(), key) == data.keys.end()) {
+                    data.keys.push_back(key);
                 }
             }
         }
-        count++;
+        data.traces++;
     }
 
-    std::cout << "Number of events: " << count << std::endl;
 }
 
 void fill_example(const std::vector<std::string> &row, data &d) {
@@ -172,7 +185,7 @@ void update_window_focus(std::vector<window> &windows, int mouse_x, int mouse_y)
 }
 
 //Todo - make size size_percent
-DrawTextPercent(const window &w, const std::string &s, float x_percent, float y_percent, int size, Color c) {
+void DrawTextPercent(const window &w, const std::string &s, float x_percent, float y_percent, int size, Color c) {
 
     int x_len = w.x_end - w.x_start;
     int y_len = w.y_end - w.y_start;
@@ -290,7 +303,7 @@ float calculate_variance(const std::vector<int> &values) {
 
 }
 
-render_stats(const window &w) {
+void render_stats(const window &w) {
 
     if (w.focus) {
         render_border(w, BLACK);
@@ -368,7 +381,7 @@ void DrawTimelineNode(const window &w, float x_pos, float y_timeline, std::strin
 
 
 
-render_timeline(const window &w) {
+void render_timeline(const window &w) {
 
     if (w.focus) {
         render_border(w, BLACK);
@@ -447,8 +460,16 @@ int main() {
     int mouse_x = 0;
     int mouse_y = 0;
 
-    const char* filename = "RequestForPayment.xes_";
-    parseXES(filename);
+    std::string xes_filename = "RequestForPayment.xes_";
+    XMLDocument xes_doc;
+    XMLElement* root_log = open_xes(xes_filename, xes_doc);
+    xes_data log_data;
+    parse_xes(root_log, log_data);
+
+    std::cout << "Traces: " << log_data.traces << " Events: " << log_data.events << std::endl;
+    for (std::string s : log_data.keys) {
+        std::cout << "Key: " << s << std::endl;
+    }
 
     while (!WindowShouldClose()) {
 

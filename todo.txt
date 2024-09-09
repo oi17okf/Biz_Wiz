@@ -1,0 +1,21 @@
+- Make main window resizeable.
+- Make subwindows work relative to main window size (reasonably, not perfect).
+- Add ability to create and delete subwindows.
+- Subwindows should not be moveable with mouse, but will automatically be adjusted to fit (i3). 
+	+/- Can change the size of focused window.
+	1/2/3... Can change what a specific window should display.
+	No interactions between subwindow
+
+
+TYPES OF WINDOWS TO IMPLEMENT
+- Key 0. Settings Panel. i.e open a new file for reading. Only 1 file at a time. (this should not be used that much, since it will default to a hardcoded file/run param.
+- Key 1.View (almost) raw data. See everything contained in the read data file. How many traces, How many events. Event per trace. All trace keys, all event keys. 
+	This might not be super useful but good for generating knowledge about the file type for me. It seems that concept:name and timestamp are the most relevant keys.
+- Key 2. Interactable node graph. Allows for creating of nodes, connections. Sidebar with allowable actions. (all)Graph should be scrollable. Most graphs should reuse functionality.
+- Key 3. View text Data in how it interacts with the constructed node graph. i.e how many traces passes, which ones don't.
+- Key 4. View singular traces in node form (option to underlay the expected graph). Allows for viewing of all traces, but focus should be on 'bad traces'.
+- Key 5. View difference from expected value in node form. Allows for viewing of all traces, but focus should be on 'bad traces'.
+	All node graphs should be in the format of logical time + connection time. Displaying a number + color on each connection with a arrow giving direction.
+	It should also match up with a linear wallclock timeline to the left. 
+	This is nothing new, but is good to implement to get confortable. After, time to experiment with more things.
+- Key 6. 
