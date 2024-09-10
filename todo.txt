@@ -1,11 +1,4 @@
-- Make main window resizeable.
-- Make subwindows work relative to main window size (reasonably, not perfect).
-- Add ability to create and delete subwindows.
-- Subwindows should not be moveable with mouse, but will automatically be adjusted to fit (i3). 
-	+/- Can change the size of focused window.
-	1/2/3... Can change what a specific window should display.
-	No interactions between subwindow
-
+- Preproccess data before to make it easier for subwindows to render data.
 
 TYPES OF WINDOWS TO IMPLEMENT
 - Key 0. Settings Panel. i.e open a new file for reading. Only 1 file at a time. (this should not be used that much, since it will default to a hardcoded file/run param.
@@ -19,3 +12,12 @@ TYPES OF WINDOWS TO IMPLEMENT
 	It should also match up with a linear wallclock timeline to the left. 
 	This is nothing new, but is good to implement to get confortable. After, time to experiment with more things.
 - Key 6. 
+
+
+
+
+
+Known bugs:
+- Renderer goes nuts when too much is on screen (despite it not being tthat much...)
+- Content in windows are not resized well
+- 

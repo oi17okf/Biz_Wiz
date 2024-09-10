@@ -31,7 +31,8 @@ std::map<int, traces> eventlog;
 enum WindowState {
     DATA,  
     SUMMARY,  
-    TIMELINE    
+    TIMELINE, 
+    GRAPH    
 };
 
 typedef struct data_window {
@@ -57,9 +58,48 @@ typedef struct window {
     timeline_window tw;
 } window;
 
+struct interactable_node {
+
+    int x;
+    int y;
+    std::string type;
+};
+
+struct connection {
+
+    interactable_node &start;
+    interactable_node &end;
+    int value = 0;
+
+    connection(interactable_node& s, interactable_node& e, int v) : start(s), end(e), value(v) {}
+};
+
+struct graph {
+
+    std::vector<interactable_node> nodes;
+    std::vector<connection>        connections;
+    float node_radius = 0.0;
+    int x_offset = 0; //allows for moving in the graph
+    int y_offset = 0;
+    int active_node_index = -1;
+};
+
+void init_graph(graph &g) {
+
+    g.node_radius = 5.0;
+    interactable_node n1 = { 0, 0, "n1" };
+    interactable_node n2 = { 50, 10, "n2" };
+    g.nodes.push_back(n1);
+    g.nodes.push_back(n2);
+}
+
 rapidcsv::Document doc("example2.csv"); //temporary
 
 //Filling a list of structs is fine for testdata, but will have performance problems later.
+
+void log(std::string s) {
+    std::cout << "LOG: " << s << std::endl;
+}
 
 using namespace tinyxml2;
 
@@ -98,9 +138,9 @@ void parse_xes(XMLElement* root, xes_data &data) {
             data.events++;
         
             for (XMLElement* attribute = event->FirstChildElement(); attribute != nullptr; attribute = attribute->NextSiblingElement()) {
-                const char* attributeName = attribute->Name();
+                //const char* attributeName = attribute->Name();
                 const char* key = attribute->Attribute("key");
-                const char* value = attribute->Attribute("value");
+                //const char* value = attribute->Attribute("value");
 
                 if (std::find(data.keys.begin(), data.keys.end(), key) == data.keys.end()) {
                     data.keys.push_back(key);
@@ -170,17 +210,21 @@ int inside_border(const window &w, int x, int y) {
     }
 }
 
-//Todo - make it so only 1 window can be focused (z axis needed for good solution)
-void update_window_focus(std::vector<window> &windows, int mouse_x, int mouse_y) {
 
-    for (int i = 0; i < windows.size(); i++) {
+window& get_focused_window(std::vector<window> &windows, int mouse_x, int mouse_y) {
+
+    int index = 0;
+
+    for (size_t i = 0; i < windows.size(); i++) {
         if (inside_border(windows[i], mouse_x, mouse_y)) {
             windows[i].focus = 1;
-
+            index = i;
         } else {
             windows[i].focus = 0;
         }
     }
+
+    return windows[index];
 
 }
 
@@ -194,7 +238,7 @@ void DrawTextPercent(const window &w, const std::string &s, float x_percent, flo
     int y = w.y_start + (y_len * y_percent);
 
 
-    int smallest_size = x_len < y_len ? x_len : y_len; // not used yet
+    //int smallest_size = x_len < y_len ? x_len : y_len; // not used yet
 
     if (inside_border(w, x, y)) {
         DrawText(s.c_str(), x, y, size, c);
@@ -400,7 +444,7 @@ void render_timeline(const window &w) {
     std::vector<int> ages = doc.GetColumn<int>("Age");
     std::vector<std::string> names = doc.GetColumn<std::string>("Name");
 
-    for (int i = 0; i < ages.size(); i++) {
+    for (size_t i = 0; i < ages.size(); i++) {
 
         float p = GetPercent((float)ages[i], (float)w.tw.min, (float)w.tw.max);
         //needs to add relative to timeline
@@ -420,30 +464,90 @@ void render_status_bar(std::string state) {
 
 */
 
+void render_graph(const window &w, graph g) {
+
+    //BeginScissorMode(w.x_start, w.y_start, w.x_end - w.x_start, w.y_end - w.y_start);
+
+    if (w.focus) {
+        render_border(w, BLACK);
+    } else {
+        render_border(w, WHITE);
+    }
+
+    for (interactable_node n : g.nodes) {
+
+        int x = n.x + g.x_offset + w.x_start;
+        int y = n.y + g.y_offset + w.y_start;
+        DrawCircle(x, y, g.node_radius, GREEN);
+        DrawText(n.type.c_str(), x, y, 8, BLUE);
+    }
+
+    //EndScissorMode();
+
+}
+
+
+struct screen {
+    int width;
+    int height;
+};
+
+void update_subwindow_sizes(std::vector<window> &windows, screen s) {
+
+    int size = windows.size();
+    int subwindow_width = s.width / size;
+
+    for (int i = 0; i < size; i++) {
+        windows[i].y_start = 0;
+        windows[i].y_end = s.height;
+
+        windows[i].x_start = subwindow_width * i;
+        windows[i].x_end   = subwindow_width * i + subwindow_width;
+
+    }
+
+}
+
+void create_subwindow(std::vector<window> &windows, WindowState state) {
+
+    window w;
+    w.state = state;
+    w.border = 2;
+
+    windows.push_back(w);
+}
+
+
+
+void delete_focused_subwindow(std::vector<window> &windows) {
+
+    if (windows.size() == 1) {
+        log("Attempt to delete final subwindow - ignored");
+        return;
+    }
+
+    for (auto it = windows.begin(); it != windows.end(); ) {
+        if (it->focus) { 
+            it = windows.erase(it);
+        } else {
+            it++;  
+        }
+    }
+}
+
 
 
 int main() {
 
-    // How to change/save data in csv
-    //doc.SetCell<std::string>(0, 1, "NewName");
-    //doc.Save();
+    SetTraceLogLevel(LOG_ALL);
 
-    int screenWidth = 800;
-    int screenHeight = 450;
+    screen screen_size = { 800, 450 };
 
     window w;
-    w.x_start = 0;
-    w.x_end = 400;
-    w.y_start = 50;
-    w.y_end = 450;
     w.border = 5;
     w.state = DATA;
 
     window w1;
-    w1.x_start = 400;
-    w1.x_end = 800;
-    w1.y_start = 50;
-    w1.y_end = 450;
     w1.border = 2;
     w1.state = TIMELINE;
 
@@ -451,7 +555,11 @@ int main() {
     windows.push_back(w);
     windows.push_back(w1);
 
-    InitWindow(screenWidth, screenHeight, "Biz Wiz");
+    update_subwindow_sizes(windows, screen_size);
+
+
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(screen_size.width, screen_size.height, "Biz Wiz");
 
     std::vector<data> list;
     create_example_list(doc, list);
@@ -471,59 +579,89 @@ int main() {
         std::cout << "Key: " << s << std::endl;
     }
 
+
+    graph g;
+    init_graph(g);
+
     while (!WindowShouldClose()) {
 
-        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Update Logic &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+        if (IsKeyPressed(KEY_F11)) {
+            ToggleFullscreen();
+        }
+
+        if (IsKeyPressed(KEY_C)) {
+            create_subwindow(windows, DATA);
+        }
+
+        if (IsKeyPressed(KEY_D)) {
+            delete_focused_subwindow(windows);
+        }
+
+        screen_size.width = GetScreenWidth();
+        screen_size.height = GetScreenHeight();
+
+        update_subwindow_sizes(windows, screen_size);
+
+        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Update Logic + INPUT &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
         mouse_x = GetMouseX();                              
         mouse_y = GetMouseY();  
 
-        update_window_focus(windows, mouse_x, mouse_y);
+        window &w = get_focused_window(windows, mouse_x, mouse_y);
 
-        for (window &w : windows) {
+        if (IsKeyPressed(KEY_ONE)) {
+            w.state = DATA;
+        } else if (IsKeyPressed(KEY_TWO)) {
+            w.state = SUMMARY;
+        } else if (IsKeyPressed(KEY_THREE)) {
+            w.state = TIMELINE;
+        } else if (IsKeyPressed(KEY_FOUR)) {
+            w.state = GRAPH;
+        } 
+ 
+        switch (w.state) {
 
-            if (w.focus == 0) { continue; }
+            case DATA: {
 
-            if (IsKeyPressed(KEY_ONE)) {
-                w.state = DATA;
-            } else if (IsKeyPressed(KEY_TWO)) {
-                w.state = SUMMARY;
-            } else if (IsKeyPressed(KEY_THREE)) {
-                w.state = TIMELINE;
-            } 
-     
-            switch (w.state) {
+                w.dw.length = doc.GetRowCount(); //should be moved to some kind of init function
 
-                case DATA: {
+                w.dw.scroll_index += -1 * GetMouseWheelMove();
 
-                    w.dw.length = doc.GetRowCount(); //should be moved to some kind of init function
+                if (w.dw.scroll_index < 0) { w.dw.scroll_index = 0; }
+                if (w.dw.scroll_index > w.dw.length - 1) { w.dw.scroll_index = w.dw.length - 1; }
 
-                    w.dw.scroll_index += -1 * GetMouseWheelMove();
-
-                    if (w.dw.scroll_index < 0) { w.dw.scroll_index = 0; }
-                    if (w.dw.scroll_index > w.dw.length - 1) { w.dw.scroll_index = w.dw.length - 1; }
-
-                    break;
-                }
-
-                case SUMMARY: {
-
-                    break;    
-                }
-
-                case TIMELINE: {
-
-                    int min;
-                    int max;
-                    calculate_min_max(doc.GetColumn<int>("Age"), min, max);
-                    w.tw.min = min < 5 ? 0 : min - 5;
-                    w.tw.max = max + 5;
-
-                    break;
-                }
-
+                break;
             }
+
+            case SUMMARY: {
+
+                break;    
+            }
+
+            case TIMELINE: {
+
+                int min;
+                int max;
+                calculate_min_max(doc.GetColumn<int>("Age"), min, max);
+                w.tw.min = min < 5 ? 0 : min - 5;
+                w.tw.max = max + 5;
+
+                break;
+            }
+
+            case GRAPH: {
+                int left_held = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+                if (left_held) {
+                    Vector2 moved = GetMouseDelta(); 
+                    g.x_offset += moved.x;
+                    g.y_offset += moved.y;
+                }
+
+                break;    
+            }
+
         }
+        
 
         //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Draw @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -549,6 +687,11 @@ int main() {
 
                 case TIMELINE: {
                     render_timeline(w);
+                    break;
+                }
+
+            case GRAPH: {
+                    render_graph(w, g);
                     break;
                 }
             
