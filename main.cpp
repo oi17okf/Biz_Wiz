@@ -5,10 +5,11 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <ctime>
 
-// Note - RapidCSV doesn't support retrieving mixed data types directly.
-
-// Current example data - Alice,30,New York,Engineer
+void log(std::string s) {
+    std::cout << "LOG: " << s << std::endl;
+}
 
 typedef struct data {
     std::string name;
@@ -97,9 +98,7 @@ rapidcsv::Document doc("example2.csv"); //temporary
 
 //Filling a list of structs is fine for testdata, but will have performance problems later.
 
-void log(std::string s) {
-    std::cout << "LOG: " << s << std::endl;
-}
+
 
 using namespace tinyxml2;
 
@@ -121,35 +120,83 @@ XMLElement* open_xes(std::string filename, XMLDocument &doc) {
 
 }
 
+struct event {
+
+    std::string id;
+    std::string resource;
+    std::string name;
+    std::string role;
+    time_t time;
+};
+
+struct trace {
+    std::vector<event> events;
+};
+
 struct xes_data {
 
-    int traces;
     int events;
+    float events_per_trace;
     std::vector<std::string> keys;
+    std::vector<trace> traces;
 
 };
 
-void parse_xes(XMLElement* root, xes_data &data) {
 
-    for (XMLElement* trace = root->FirstChildElement("trace"); trace != nullptr; trace = trace->NextSiblingElement("trace")) {
 
-        for (XMLElement* event = trace->FirstChildElement("event"); event != nullptr; event = event->NextSiblingElement("event")) {
+time_t parse_timestamp(const std::string& timestamp) {
 
-            data.events++;
-        
-            for (XMLElement* attribute = event->FirstChildElement(); attribute != nullptr; attribute = attribute->NextSiblingElement()) {
-                //const char* attributeName = attribute->Name();
-                const char* key = attribute->Attribute("key");
-                //const char* value = attribute->Attribute("value");
+    std::tm tm = {};
+    std::stringstream ss(timestamp);
+    
+    //cuts of timestamp from "2023-09-06T09:34:00.000+00:00" to 2023-09-06T09:34:00
+    ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
 
-                if (std::find(data.keys.begin(), data.keys.end(), key) == data.keys.end()) {
-                    data.keys.push_back(key);
-                }
-            }
-        }
-        data.traces++;
+    if (ss.fail()) {
+        log("error parsing time");
     }
 
+    return mktime(&tm);
+}
+
+void parse_xes(XMLElement* root, xes_data &data) {
+
+    for (XMLElement* log_trace = root->FirstChildElement("trace"); log_trace != nullptr; log_trace = log_trace->NextSiblingElement("trace")) {
+
+        trace t;
+
+        for (XMLElement* log_event = log_trace->FirstChildElement("event"); log_event != nullptr; log_event = log_event->NextSiblingElement("event")) {
+
+            data.events++;
+
+            event e;
+
+            for (XMLElement* attribute = log_event->FirstChildElement(); attribute; attribute = attribute->NextSiblingElement()) {
+
+                const char* key   = attribute->Attribute("key");
+                const char* value = attribute->Attribute("value");
+                
+                if        (key && std::string(key) == "id") {
+                    e.id = std::string(value);
+                } else if (key && std::string(key) == "org:resource") {
+                    e.resource = std::string(value);
+                } else if (key && std::string(key) == "concept:name") {
+                    e.name = std::string(value);
+                } else if (key && std::string(key) == "org:role") {
+                    e.role = std::string(value);
+                } else if (key && std::string(key) == "time:timestamp") {
+                    e.time = parse_timestamp(std::string(value));
+                }
+            }
+
+            t.events.push_back(e);
+        }
+
+        data.traces.push_back(t);
+
+    }
+
+    data.events_per_trace = data.events / data.traces.size();
 }
 
 void fill_example(const std::vector<std::string> &row, data &d) {
@@ -574,10 +621,9 @@ int main() {
     xes_data log_data;
     parse_xes(root_log, log_data);
 
-    std::cout << "Traces: " << log_data.traces << " Events: " << log_data.events << std::endl;
-    for (std::string s : log_data.keys) {
-        std::cout << "Key: " << s << std::endl;
-    }
+    event e = log_data.traces[0].events[0];
+
+    std::cout << "First event: " << std::endl << e.id << std::endl << e.resource << std::endl << e.name << std::endl << e.role << std::endl << std::ctime(&e.time) << std::endl;
 
 
     graph g;
