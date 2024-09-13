@@ -6,28 +6,15 @@
 #include <string>
 #include <algorithm>
 #include <ctime>
+#include <limits>
+
+using namespace tinyxml2;
+
+std::string global_msg = "Welcome to Biz_Wiz";
 
 void log(std::string s) {
     std::cout << "LOG: " << s << std::endl;
 }
-
-typedef struct data {
-    std::string name;
-    int age;
-    std::string loc;
-    std::string work;
-} data; 
-
-typedef struct activity {
-    std::string type;
-    int timestamp;
-} activity;
-
-typedef struct traces {
-    std::vector<activity> events;
-} traces;
-
-std::map<int, traces> eventlog;
 
 enum WindowState {
     DATA,  
@@ -36,89 +23,13 @@ enum WindowState {
     GRAPH    
 };
 
-typedef struct data_window {
-    int scroll_index = 0;
-    int length = 0;
-} data_window;
 
-typedef struct timeline_window {
-    int scroll_index = 0;
-    int min = 0;
-    int max = 0;
-} timeline_window;
 
-typedef struct window {
-    int x_start;
-    int x_end;
-    int y_start;
-    int y_end;
-    int border = 0;
-    int focus = 0;
-    WindowState state;
-    data_window dw;
-    timeline_window tw;
-} window;
-
-struct interactable_node {
-
-    int x;
-    int y;
-    std::string type;
+struct summary_data {
+    int traces;
+    int events;
+    float events_per_trace;
 };
-
-struct connection {
-
-    interactable_node &start;
-    interactable_node &end;
-    int value = 0;
-
-    connection(interactable_node& s, interactable_node& e, int v) : start(s), end(e), value(v) {}
-};
-
-struct graph {
-
-    std::vector<interactable_node> nodes;
-    std::vector<connection>        connections;
-    float node_radius = 0.0;
-    int x_offset = 0; //allows for moving in the graph
-    int y_offset = 0;
-    int active_node_index = -1;
-};
-
-void init_graph(graph &g) {
-
-    g.node_radius = 5.0;
-    interactable_node n1 = { 0, 0, "n1" };
-    interactable_node n2 = { 50, 10, "n2" };
-    g.nodes.push_back(n1);
-    g.nodes.push_back(n2);
-}
-
-rapidcsv::Document doc("example2.csv"); //temporary
-
-//Filling a list of structs is fine for testdata, but will have performance problems later.
-
-
-
-using namespace tinyxml2;
-
-XMLElement* open_xes(std::string filename, XMLDocument &doc) {
-
-    XMLError eResult = doc.LoadFile(filename.c_str());
-    if (eResult != XML_SUCCESS) {
-        std::cerr << "Error loading file: " << eResult << std::endl;
-        return nullptr;
-    }
-
-    XMLElement* root = doc.FirstChildElement("log");
-    if (root == nullptr) {
-        std::cerr << "No <log> element found in XES file" << std::endl;
-        return nullptr;
-    }
-
-    return root;
-
-}
 
 struct event {
 
@@ -137,12 +48,164 @@ struct xes_data {
 
     int events;
     float events_per_trace;
-    std::vector<std::string> keys;
+    std::vector<std::string> names;
     std::vector<trace> traces;
+};
+
+struct data_data {
+    std::vector<trace> &traces;
+    int scroll_index = 0;
+    int length = 0;
+    int item_height = 20;
+    int hover_index = -1;
+    int selected_index  = -1;
+
+    data_data(std::vector<trace> &t) : traces(t) {}
+};
+
+struct timeline_data {
+
+    std::vector<trace> &traces;
+    int trace_index = 0;
+    time_t start = 0;
+    time_t end = 0;
+
+    timeline_data(std::vector<trace> &t) : traces(t) {}
+};
+
+struct window {
+    int x_start;
+    int x_end;
+    int y_start;
+    int y_end;
+    int border = 0;
+    int focus = 0;
+    WindowState state;
+};
+
+struct interactable_node {
+
+    Vector2 pos;
+    std::string type;
+};
+
+struct mouse {
+
+    Vector2 pos;
+    Vector2 end;
+    Vector2 delta;
+    float wheel_delta;
+    int left_click;
+    int right_click;
+    int left_down;
 
 };
 
+struct connection {
 
+    interactable_node *start;
+    interactable_node *end;
+    int value = 0;
+
+    connection(interactable_node* s, interactable_node* e, int v) : start(s), end(e), value(v) {}
+};
+
+enum Action {
+
+    CANCEL,  
+    CREATE_NODE,  
+    CREATE_CONNECTION, 
+    DELETE_NODE,
+    DELETE_CONNECTION,
+    RESET_CAMERA   
+
+};
+
+struct action {
+
+    Action type;
+    int index;
+    int index2;
+
+    std::string name;
+
+};
+
+struct graph_data {
+
+    std::vector<interactable_node> nodes;
+    std::vector<connection>        connections;
+    float node_radius = 10;
+    Vector2 offset = { 0, 0 };
+    int hover_node_index = -1;
+    int active_node_index = -1;
+    std::vector<std::string> node_names;
+
+    int menu_active = 0;
+    std::vector<action> action_list;
+    int item_hovered = -1;
+    int item_selected = -1;
+    int item_height = 20;
+    Rectangle menu_loc;
+    Vector2 old_mouse_pos;
+    
+};
+
+Vector2 AddVector2(Vector2 a, Vector2 b) {
+
+    Vector2 c;
+    c.x = a.x + b.x;
+    c.y = a.y + b.y;
+    return c;
+}
+
+Vector2 SubVector2(Vector2 a, Vector2 b) {
+
+    Vector2 c;
+    c.x = a.x - b.x;
+    c.y = a.y - b.y;
+    return c;
+}
+
+
+
+
+
+graph_data create_graph_data(xes_data &log) {
+
+    graph_data g;
+    g.node_radius = 10.0;
+    g.node_names = log.names;
+
+    interactable_node n1 = { 0, 0, "n1" }; //Todo remove
+    interactable_node n2 = { 50, 10, "n2" };
+    interactable_node n3 = { 0, 50, "n3" };
+    interactable_node n4 = { -20, -20, "n4" };
+    g.nodes.push_back(n1);
+    g.nodes.push_back(n2);
+    g.nodes.push_back(n3);
+    g.nodes.push_back(n4);
+
+    return g;
+}
+
+XMLElement* open_xes(std::string filename, XMLDocument &doc) {
+
+    XMLError eResult = doc.LoadFile(filename.c_str());
+    if (eResult != XML_SUCCESS) {
+        std::cerr << "Error loading file: " << eResult << std::endl;
+        return nullptr;
+    }
+
+    XMLElement* root = doc.FirstChildElement("log");
+    if (root == nullptr) {
+        std::cerr << "No <log> element found in XES file" << std::endl;
+        return nullptr;
+    }
+
+    return root;
+
+}
 
 time_t parse_timestamp(const std::string& timestamp) {
 
@@ -182,6 +245,9 @@ void parse_xes(XMLElement* root, xes_data &data) {
                     e.resource = std::string(value);
                 } else if (key && std::string(key) == "concept:name") {
                     e.name = std::string(value);
+                    if (std::find(data.names.begin(), data.names.end(), e.name) == data.names.end()) {
+                        data.names.push_back(e.name);
+                    }
                 } else if (key && std::string(key) == "org:role") {
                     e.role = std::string(value);
                 } else if (key && std::string(key) == "time:timestamp") {
@@ -196,42 +262,7 @@ void parse_xes(XMLElement* root, xes_data &data) {
 
     }
 
-    data.events_per_trace = data.events / data.traces.size();
-}
-
-void fill_example(const std::vector<std::string> &row, data &d) {
-
-    d.name = row[0];
-    d.age  = std::stoi(row[1]);
-    d.loc  = row[2];
-    d.work = row[3];
-
-}
-
-void create_example_list(rapidcsv::Document doc, std::vector<data> &list) {
-
-    int len = doc.GetRowCount();
-    list.resize(len);
-
-    for (int i = 0; i < len; i++) {
-
-        std::vector<std::string> rowData = doc.GetRow<std::string>(i);
-        fill_example(rowData, list[i]);
-
-    }
-}
-
-void print_example_list(const std::vector<data> &list) {
-
-    int len = list.size();
-    std::cout << "Example data contains " << len << " rows" << std::endl;
- 
-
-    for (int i = 0; i < len; i++) {
-        //std::cout << "Row " << i << list[i].name << list[i].age << list[i].loc << list[i].work << std::endl;
-        printf("Row %d: %s, %d, %s, %s\n", i, list[i].name.c_str(), list[i].age, list[i].loc.c_str(), list[i].work.c_str());
-    }
-    std::cout << "Example data printed" << std::endl;
+    data.events_per_trace = (float)data.events / (float)data.traces.size();
 }
 
 float calculate_avg_age(rapidcsv::Document doc) {
@@ -293,37 +324,6 @@ void DrawTextPercent(const window &w, const std::string &s, float x_percent, flo
 
 }
 
-void render_border(const window &w, Color c) {
-
-    DrawRectangleLinesEx(Rectangle{(float)w.x_start, (float)w.y_start, (float)w.x_end - w.x_start, (float)w.y_end - w.y_start}, w.border, c);
-
-}
-
-void render_csv(const window &w) {
-
-    if (w.focus) {
-        render_border(w, BLACK);
-    } else {
-        render_border(w, WHITE);
-    }
-
-
-    int csv_len = doc.GetRowCount();
-    std::vector<std::string> csv_names = doc.GetColumnNames();
-
-    std::string s1 = "Csv contains " + std::to_string(csv_len) + " rows!";
-    DrawTextPercent(w, s1, 0.025, 0.02, 30, GREEN);
-
-    std::string s2 = csv_names[0] + " - " + csv_names[1] + " - " + csv_names[2] + " - " + csv_names[3];
-    DrawTextPercent(w, s2, 0.025, 0.1, 20, BLUE);
-
-    for (int i = w.dw.scroll_index; i < csv_len; i++) {
-        std::vector<std::string> row = doc.GetRow<std::string>(i);
-        std::string s3 = row[0] + " - " + row[1] + " - " + row[2] + " - " + row[3];
-        DrawTextPercent(w, s3, 0.025, 0.15 + (0.04 * (i - w.dw.scroll_index)), 18, SKYBLUE);
-    }
-
-}
 
 void calculate_min_max(const std::vector<int> &values, int &min, int &max) {
 
@@ -394,36 +394,7 @@ float calculate_variance(const std::vector<int> &values) {
 
 }
 
-void render_stats(const window &w) {
 
-    if (w.focus) {
-        render_border(w, BLACK);
-    } else {
-        render_border(w, WHITE);
-    }
-
-    
-    int len = doc.GetRowCount();
-    std::string s1 = "File contains " + std::to_string(len) + " rows.";
-    DrawTextPercent(w, s1, 0.025, 0.05, 20, BLUE);
-
-    std::vector<std::string> csv_names = doc.GetColumnNames();
-    std::string s2 = csv_names[0] + " - " + csv_names[1] + " - " + csv_names[2] + " - " + csv_names[3];
-    DrawTextPercent(w, s2, 0.025, 0.1, 20, BLUE);
-
-
-    std::vector<int> ages = doc.GetColumn<int>("Age");
-    float avg    = calculate_avg(ages);
-    float median = calculate_median(ages);
-    int mode     = calculate_mode(ages);
-    std::string s3 = "Age avg value is:    " + std::to_string(avg);
-    std::string s4 = "Age median value is: " + std::to_string(median);
-    std::string s5 = "Age mode value is:   " + std::to_string(mode);
-    DrawTextPercent(w, s3, 0.025, 0.15, 20, BLUE);
-    DrawTextPercent(w, s4, 0.025, 0.20, 20, BLUE);
-    DrawTextPercent(w, s5, 0.025, 0.25, 20, BLUE);
-
-}
 
 float Interpolate(float percent, int min, int max) {
 
@@ -470,62 +441,54 @@ void DrawTimelineNode(const window &w, float x_pos, float y_timeline, std::strin
 
 }
 
-
-
-void render_timeline(const window &w) {
+void render_border(const window &w) {
 
     if (w.focus) {
-        render_border(w, BLACK);
+        DrawRectangleLinesEx(Rectangle{(float)w.x_start, (float)w.y_start, (float)w.x_end - w.x_start, (float)w.y_end - w.y_start}, w.border, BLACK);
     } else {
-        render_border(w, WHITE);
+        DrawRectangleLinesEx(Rectangle{(float)w.x_start, (float)w.y_start, (float)w.x_end - w.x_start, (float)w.y_end - w.y_start}, w.border, WHITE);
     }
+}
 
-    DrawLinePercent(w, 0.1, 0.8, 0.9, 0.8, 3, BLACK);
-    DrawLinePercent(w, 0.1, 0.75, 0.1, 0.85, 2, BLACK);
-    DrawLinePercent(w, 0.9, 0.75, 0.9, 0.85, 2, BLACK);
-    std::string s_min = std::to_string(w.tw.min);
-    std::string s_max = std::to_string(w.tw.max);
-    DrawTextPercent(w, s_min, 0.08, 0.7, 12, GREEN);
-    DrawTextPercent(w, s_max, 0.88, 0.7, 12, GREEN);
+void render_summary(const window &w, const summary_data &s) {
 
-    std::vector<int> ages = doc.GetColumn<int>("Age");
-    std::vector<std::string> names = doc.GetColumn<std::string>("Name");
-
-    for (size_t i = 0; i < ages.size(); i++) {
-
-        float p = GetPercent((float)ages[i], (float)w.tw.min, (float)w.tw.max);
-        //needs to add relative to timeline
-        DrawTimelineNode(w, p, 0.8, names[i], ages[i]); 
-    }
-    
+    render_border(w);
 
 }
 
-/* 
-void render_status_bar(std::string state) {
-    std::string s = "Current state: " + state;
-    DrawText(s.c_str(), 5, 5, 16, BROWN);
-    std::string s1 = "Press 1-4 to change state";
-    DrawText(s1.c_str(), 5, 20, 10, BROWN);
+void render_timeline(const window &w, const timeline_data &d) {
+
+    render_border(w);
+
+    // Drawtimeline
+
+    // Draw min/max values
+
+    // Draw nodes
+   
+
 }
 
-*/
 
-void render_graph(const window &w, graph g) {
+
+void render_data(const window &w, const data_data &d) {
+
+    render_border(w);
+
+}
+
+void render_graph(const window &w, const graph_data &g) {
 
     //BeginScissorMode(w.x_start, w.y_start, w.x_end - w.x_start, w.y_end - w.y_start);
 
-    if (w.focus) {
-        render_border(w, BLACK);
-    } else {
-        render_border(w, WHITE);
-    }
+    render_border(w);
+
 
     for (interactable_node n : g.nodes) {
 
-        int x = n.x + g.x_offset + w.x_start;
-        int y = n.y + g.y_offset + w.y_start;
-        DrawCircle(x, y, g.node_radius, GREEN);
+        int x = g.offset.x + w.x_start + n.pos.x;
+        int y = g.offset.y + w.y_start + n.pos.y;
+        DrawCircleLines(x, y, g.node_radius, GREEN);
         DrawText(n.type.c_str(), x, y, 8, BLUE);
     }
 
@@ -582,9 +545,208 @@ void delete_focused_subwindow(std::vector<window> &windows) {
     }
 }
 
+summary_data create_summary_data(xes_data &log) {
+
+    summary_data s;
+    s.traces = log.traces.size();
+    s.events = log.events;
+    s.events_per_trace = log.events_per_trace;
+
+    return s;
+}
+
+data_data create_data_data(xes_data &log) {
+
+    data_data d = { log.traces };
+
+    d.length = log.traces.size() + log.events * 6; // each event has 5 fields
+
+    return d;
+}
+
+void update_timeline_bounds(timeline_data &timeline) {
+
+    trace t = timeline.traces[timeline.trace_index];
+
+    timeline.start = std::numeric_limits<time_t>::max();
+    timeline.end   = std::numeric_limits<time_t>::min();
+
+    for (event e : t.events) {
+        timeline.start = e.time < timeline.start ? e.time : timeline.start;
+        timeline.end   = e.time > timeline.end   ? e.time : timeline.end;
+    }
+}
+
+timeline_data create_timeline_data(xes_data &log) {
+
+    timeline_data d = { log.traces };
+    update_timeline_bounds(d);
+
+    return d;
+}
+
+int clamp(int i, int min, int max) {
+
+    i = i < min ? min : i;
+    i = i > max ? max : i;
+    return i;
+}
+
+
+void logic_data(mouse &m, data_data &d) {
+
+    d.scroll_index += -1 * m.wheel_delta;
+    d.scroll_index = clamp(d.scroll_index, 0, d.length);
+
+    d.hover_index = m.pos.y / d.item_height;
+
+    if (m.left_click) { 
+        d.selected_index = d.hover_index;
+    }
+
+    if (m.left_down == 0 && d.selected_index != -1) {
+        //swappppp
+        d.selected_index = -1;
+    }
+}
+
+void logic_summary(mouse &m, summary_data &s) {
+
+    //todo?
+}
+
+void logic_timeline(mouse &m, timeline_data &t) {
+
+    //todoi
+}
+
+void create_node(graph_data &g, action a) {
+
+    interactable_node n;
+    n.pos = g.old_mouse_pos;
+    n.type = a.name;
+
+    g.nodes.push_back(n);
+}
+
+void delete_node(graph_data &g, action a) {
+
+    interactable_node* ptr = &(g.nodes[a.index]);
+
+    for (std::vector<connection>::iterator it = g.connections.begin(); it != g.connections.end();) {
+        if (it->start == ptr || it->end == ptr) { 
+            it = g.connections.erase(it); 
+            log("deleted connection while deleting node");
+        } else { 
+            it++; 
+        }
+    }
+
+    g.nodes.erase(g.nodes.begin() + a.index);
+
+}
+
+void create_connection(graph_data &g, action a) {
+
+    interactable_node *n1 = &(g.nodes[a.index]);
+    interactable_node *n2 = &(g.nodes[a.index2]);
+
+    connection c = connection(n1, n2, 0);
+
+    g.connections.push_back(c);
+
+}
+
+void delete_connection(graph_data &g, action a) {
+
+    g.connections.erase(g.connections.begin() + a.index);
+
+}
+
+void reset_camera(graph_data &g) {
+    g.offset = { 0, 0 };
+}
+
+void do_menu_action(graph_data &g) {
+
+    action a = g.action_list[g.item_selected];
+
+    switch (a.type) {
+
+        case CANCEL:            {                          break; }
+        case CREATE_NODE:       { create_node(g, a);       break; }
+        case DELETE_NODE:       { delete_node(g, a);       break; }
+        case CREATE_CONNECTION: { create_connection(g, a); break; }
+        case DELETE_CONNECTION: { delete_connection(g, a); break; }
+        case RESET_CAMERA:      { reset_camera(g);         break; }
+  
+    }
+
+}
+
+void logic_graph(mouse &m, graph_data &g) {
+
+    if (g.menu_active) { g.menu_active = CheckCollisionPointRec(m.pos, g.menu_loc); }
+
+    if (g.menu_active) {
+        int menu_y = m.pos.y - g.menu_loc.y;
+        g.item_hovered = menu_y / g.item_height -1;
+
+        if (m.left_click) {
+            g.item_selected = g.item_hovered;
+            if (g.item_selected != -1) {
+                do_menu_action(g);
+            }
+            g.item_hovered  = -1;
+            g.menu_active = 0;
+        }
+
+    } else {
+
+        g.hover_node_index = -1;
+        for (size_t i = 0; i < g.nodes.size(); i++) {
+            interactable_node n = g.nodes[i];
+            Vector2 node_pos = AddVector2(n.pos, g.offset);
+            if (CheckCollisionPointCircle(m.pos, node_pos, g.node_radius)) {
+                g.hover_node_index = i;
+                log("hooooooovering");
+            }
+        }
+
+        if (m.right_click && g.menu_active == 0)
+
+        if (m.left_click && g.hover_node_index != -1) {
+            g.active_node_index = g.hover_node_index;
+            log("active set");
+
+        }
+
+        //to handle connection collision
+        //bool CheckCollisionPointLine(Vector2 point, Vector2 p1, Vector2 p2, int threshold); 
+
+
+
+        if (m.left_down) {
+            if (g.active_node_index == -1) {
+                g.offset = AddVector2(g.offset, m.delta);
+            } else {
+                g.nodes[g.active_node_index].pos = AddVector2(g.nodes[g.active_node_index].pos, m.delta);
+            }
+        
+        } else {
+            g.active_node_index = -1;
+            log("active un-set");
+        }
+    }
+}
+
+            
+           
 
 
 int main() {
+
+    std::string xes_filename = "RequestForPayment.xes_";
 
     SetTraceLogLevel(LOG_ALL);
 
@@ -608,141 +770,81 @@ int main() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screen_size.width, screen_size.height, "Biz Wiz");
 
-    std::vector<data> list;
-    create_example_list(doc, list);
-    print_example_list(list);
 
-    int mouse_x = 0;
-    int mouse_y = 0;
-
-    std::string xes_filename = "RequestForPayment.xes_";
+    struct mouse m;
+    
     XMLDocument xes_doc;
     XMLElement* root_log = open_xes(xes_filename, xes_doc);
     xes_data log_data;
     parse_xes(root_log, log_data);
 
-    event e = log_data.traces[0].events[0];
-
-    std::cout << "First event: " << std::endl << e.id << std::endl << e.resource << std::endl << e.name << std::endl << e.role << std::endl << std::ctime(&e.time) << std::endl;
-
-
-    graph g;
-    init_graph(g);
+    summary_data s  = create_summary_data(log_data);
+    data_data d     = create_data_data(log_data);
+    timeline_data t = create_timeline_data(log_data);
+    graph_data g    = create_graph_data(log_data);
+ 
 
     while (!WindowShouldClose()) {
 
-        if (IsKeyPressed(KEY_F11)) {
-            ToggleFullscreen();
-        }
+        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& GLOBAL INPUT &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        if (IsKeyPressed(KEY_C)) {
-            create_subwindow(windows, DATA);
-        }
+        if (IsKeyPressed(KEY_F11)) { ToggleFullscreen();                }
+        if (IsKeyPressed(KEY_C))   { create_subwindow(windows, DATA);   }
+        if (IsKeyPressed(KEY_D))   { delete_focused_subwindow(windows); }
 
-        if (IsKeyPressed(KEY_D)) {
-            delete_focused_subwindow(windows);
-        }
-
-        screen_size.width = GetScreenWidth();
+        screen_size.width  = GetScreenWidth();
         screen_size.height = GetScreenHeight();
 
         update_subwindow_sizes(windows, screen_size);
 
-        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Update Logic + INPUT &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+        m.pos         = GetMousePosition();
+        m.delta       = GetMouseDelta();
+        m.wheel_delta = GetMouseWheelMove();
+        m.left_click  = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+        m.right_click = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        m.left_down   = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
 
-        mouse_x = GetMouseX();                              
-        mouse_y = GetMouseY();  
+        window &w = get_focused_window(windows, m.pos.x, m.pos.y);
+        m.pos.x -= w.x_start;
+        m.pos.y -= w.y_start;
+        m.end.x =  w.x_end - w.x_start;
+        m.end.y =  w.y_end - w.y_start;
 
-        window &w = get_focused_window(windows, mouse_x, mouse_y);
+        // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& LOCAL INPUT &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        if (IsKeyPressed(KEY_ONE)) {
-            w.state = DATA;
-        } else if (IsKeyPressed(KEY_TWO)) {
-            w.state = SUMMARY;
-        } else if (IsKeyPressed(KEY_THREE)) {
-            w.state = TIMELINE;
-        } else if (IsKeyPressed(KEY_FOUR)) {
-            w.state = GRAPH;
-        } 
- 
+        if      (IsKeyPressed(KEY_ONE))    { w.state = DATA;     } 
+        else if (IsKeyPressed(KEY_TWO))    { w.state = SUMMARY;  } 
+        else if (IsKeyPressed(KEY_THREE))  { w.state = TIMELINE; } 
+        else if (IsKeyPressed(KEY_FOUR))   { w.state = GRAPH;    } 
+
+        // &&&&&&&&&&&&&&&&&&&&& LOGIC &&&&&&&&&&&&&&&&&&
+
         switch (w.state) {
 
-            case DATA: {
+            case DATA:     { logic_data    (m, d); break; }
+            case SUMMARY:  { logic_summary (m, s); break; }
+            case TIMELINE: { logic_timeline(m, t); break; }
+            case GRAPH:    { logic_graph   (m, g); break; }
 
-                w.dw.length = doc.GetRowCount(); //should be moved to some kind of init function
-
-                w.dw.scroll_index += -1 * GetMouseWheelMove();
-
-                if (w.dw.scroll_index < 0) { w.dw.scroll_index = 0; }
-                if (w.dw.scroll_index > w.dw.length - 1) { w.dw.scroll_index = w.dw.length - 1; }
-
-                break;
-            }
-
-            case SUMMARY: {
-
-                break;    
-            }
-
-            case TIMELINE: {
-
-                int min;
-                int max;
-                calculate_min_max(doc.GetColumn<int>("Age"), min, max);
-                w.tw.min = min < 5 ? 0 : min - 5;
-                w.tw.max = max + 5;
-
-                break;
-            }
-
-            case GRAPH: {
-                int left_held = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-                if (left_held) {
-                    Vector2 moved = GetMouseDelta(); 
-                    g.x_offset += moved.x;
-                    g.y_offset += moved.y;
-                }
-
-                break;    
-            }
-
-        }
+        } 
         
 
         //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Draw @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         BeginDrawing();
 
-        //render_status_bar(state);
-
         for (window &w : windows) {
 
             switch (w.state) {
+                case DATA:     { render_data    (w, d); break; }
+                case SUMMARY:  { render_summary (w, s); break; } 
+                case TIMELINE: { render_timeline(w, t); break; }
+                case GRAPH:    { render_graph   (w, g); break; }
 
-                case DATA: {
-
-                    render_csv(w);
-                    break;
-                }
-
-                case SUMMARY: {
-
-                    render_stats(w);
-                    break;    
-                }
-
-                case TIMELINE: {
-                    render_timeline(w);
-                    break;
-                }
-
-            case GRAPH: {
-                    render_graph(w, g);
-                    break;
-                }
-            
             }
         }
+
+        DrawText(global_msg.c_str(), 2, 2, 8, YELLOW);
 
         ClearBackground(RAYWHITE);
         EndDrawing();
