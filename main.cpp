@@ -121,6 +121,7 @@ enum Action {
 
 };
 
+
 struct action {
 
     Action type;
@@ -684,6 +685,57 @@ void do_menu_action(graph_data &g) {
 
 }
 
+int intersecting_node(Vector2 pos, graph_data &g, int i) {
+
+    interactable_node n = g.nodes[i];
+    Vector2 node_pos = AddVector2(n.pos, g.offset);
+    return CheckCollisionPointCircle(m.pos, node_pos, g.node_radius);
+
+}
+
+
+
+//Any item that overlaps with the click gets added
+//Do this by simply looping through every single item for now...
+void update_action_list(Vector2 pos, graph_data &g) {
+
+    //For each new item sort created, simply add new for loop and set interaction actions.
+
+    //NODES
+    for (size_t i = 0; i < g.nodes.size(); i++) {
+
+        //Add node actions
+        if (intersecting_node(pos, g, i)) {
+            
+            
+            action delete_node = { DELETE_NODE, i, 0, "" };
+            g.actions_list.push_back(delete_node);
+        }
+
+    }
+
+    //CONNECTIONS
+    for (size_t i = 0; i < g.connections.size(); i++) {
+
+        //Add connection actions
+        if (intersecting_connection(pos, g, i)) {
+            action delete_connection = { DELETE_CONNECTION, i, 0, "" };
+            g.actions_list.push_back(delete_connection);
+
+        }
+
+    }
+
+
+
+    //Add reset camera for funsies
+    action reset_cam = { RESET_CAMERA, 0, 0, "" }; //only type is relevant here.
+    g.action_list.push_back(reset_cam);
+    //Finish by adding a cancel
+    action cancel = { CANCEL, 0, 0, "" }; 
+    g.action_list.push_back(reset_cam);
+}
+
 void logic_graph(mouse &m, graph_data &g) {
 
     if (g.menu_active) { g.menu_active = CheckCollisionPointRec(m.pos, g.menu_loc); }
@@ -713,7 +765,12 @@ void logic_graph(mouse &m, graph_data &g) {
             }
         }
 
-        if (m.right_click && g.menu_active == 0)
+        if (m.right_click) {
+            g.menu_active = 1;
+
+            update_action_list(m.pos, g);
+
+        }
 
         if (m.left_click && g.hover_node_index != -1) {
             g.active_node_index = g.hover_node_index;
