@@ -98,6 +98,7 @@ struct mouse {
     int left_click;
     int right_click;
     int left_down;
+    int left_released;
 
 };
 
@@ -121,12 +122,27 @@ enum Action {
 
 };
 
+const std::map<Action, std::string> action_names = {
+    { CANCEL, "Cancel" },
+    { CREATE_NODE, "Create node" },
+    { CREATE_CONNECTION, "SERVER_ERROR" },
+    { DELETE_NODE, "SERVER_ERROR" },
+    { DELETE_CONNECTION, "SERVER_ERROR" },
+    { RESET_CAMERA, "SERVER_ERROR" }
+};
+
+std::string action_to_string(Action a) {
+
+    auto it = action_names.find(a);
+
+    if (it != action_names.end()) { return it->second;       } 
+    else                          { return "UNKNOWN ACTION"; }
+}
 
 struct action {
 
     Action type;
     int index;
-    int index2;
 
     std::string name;
 
@@ -141,6 +157,8 @@ struct graph_data {
     int hover_node_index = -1;
     int active_node_index = -1;
     std::vector<std::string> node_names;
+    int hover_conn_index = -1;
+    int active_conn_index = -1;
 
     int menu_active = 0;
     std::vector<action> action_list;
@@ -149,6 +167,7 @@ struct graph_data {
     int item_height = 20;
     Rectangle menu_loc;
     Vector2 old_mouse_pos;
+    int node_conn_index = -1;
     
 };
 
@@ -225,11 +244,13 @@ time_t parse_timestamp(const std::string& timestamp) {
 
 void parse_xes(XMLElement* root, xes_data &data) {
 
-    for (XMLElement* log_trace = root->FirstChildElement("trace"); log_trace != nullptr; log_trace = log_trace->NextSiblingElement("trace")) {
+    for (XMLElement* log_trace = root->FirstChildElement("trace"); 
+        log_trace != nullptr; log_trace = log_trace->NextSiblingElement("trace")) {
 
         trace t;
 
-        for (XMLElement* log_event = log_trace->FirstChildElement("event"); log_event != nullptr; log_event = log_event->NextSiblingElement("event")) {
+        for (XMLElement* log_event = log_trace->FirstChildElement("event"); 
+            log_event != nullptr; log_event = log_event->NextSiblingElement("event")) {
 
             data.events++;
 
@@ -478,6 +499,76 @@ void render_data(const window &w, const data_data &d) {
 
 }
 
+void render_graph_node(const window &w, const graph_data &g, interactable_node n) {
+
+    int x = g.offset.x + w.x_start + n.pos.x;
+    int y = g.offset.y + w.y_start + n.pos.y;
+    DrawCircleLines(x, y, g.node_radius, GREEN);
+    DrawText(n.type.c_str(), x, y, 8, BLUE);
+}
+
+void render_graph_conn(const window &w, const graph_data &g, connection c) {
+
+    Vector2 start = { g.offset.x + w.x_start + c.start->pos.x , g.offset.y + w.y_start + c.start->pos.y };
+    Vector2 end   = { g.offset.x + w.x_start + c.end->pos.x   , g.offset.y + w.y_start + c.end->pos.y   };
+
+    DrawLineEx(start, end, 3, GREEN);
+
+    std::string val = std::to_string(c.value);
+    int x = (start.x + end.x) / 2; 
+    int y = (start.y + end.y) / 2; 
+
+    DrawText(val.c_str(), x, y, 8, BLUE);
+}
+
+Rectangle calc_menu_pos(const window &w, const graph_data &g, int l) {
+
+    Vector2 m_pos = g.old_mouse_pos;
+    int items = g.action_list.size();
+    int height = (items + 1) * g.item_height;
+    int width = l < 50 ? 50 : l;
+
+    int x = m_pos.x - width / 2;
+    x = x < w.x_start ? w.x_start : x;
+    x = x + width > w.x_end ? x - (x + width - w.x_end) : x;
+
+    int y = m_pos.y;
+    y = y + height > w.y_end ? y - (y + height - w.y_end) : y;
+
+    Rectangle rec = { (float)x, (float)y, (float)width, (float)height };
+    return rec;
+}
+
+void render_graph_menu(const window &w, const graph_data &g) {
+
+    int longest_action = 0;
+    for (action a : g.action_list) {
+
+        std::string s = action_to_string(a.index);
+        longest_action = MeasureText(s.c_str(), 10);
+    }
+
+    g.menu_loc = calc_menu_pos(w, g, longest_action);
+
+    DrawRectangleRec(g.menu_loc, BROWN);
+    DrawRectangle(g.menu_loc.x + 1, g.menu_loc.y + 1, g.menu_loc.width - 2, g.item_height - 2, BLACK);     
+    DrawRectangleLines(g.menu_loc.x + 1, g.menu_loc.y + g.item_height + 1, g.menu_loc.width - 2, g.menu_loc.height - g.item_height - 2, BLACK);
+
+    DrawText("Choose option", g.menu_loc.x + 2, g.menu_loc.y, 10, BROWN);
+    int i = 0;  
+    for (action a : g.action_list) {
+
+        Color c = WHITE;
+        c = i == g.item_selected ? YELLOW : c;
+        std::string s = action_to_string(a.index);
+        DrawText(s.c_str(), g.menu_loc.x + 2, g_menu_loc.y + g.item_height * (i+1), 10, c); 
+        i++;
+    }
+    
+   
+
+}
+
 void render_graph(const window &w, const graph_data &g) {
 
     //BeginScissorMode(w.x_start, w.y_start, w.x_end - w.x_start, w.y_end - w.y_start);
@@ -487,10 +578,18 @@ void render_graph(const window &w, const graph_data &g) {
 
     for (interactable_node n : g.nodes) {
 
-        int x = g.offset.x + w.x_start + n.pos.x;
-        int y = g.offset.y + w.y_start + n.pos.y;
-        DrawCircleLines(x, y, g.node_radius, GREEN);
-        DrawText(n.type.c_str(), x, y, 8, BLUE);
+        render_graph_node(w, g, n);
+    }
+
+    for (connection c : g.connections) {
+
+        render_graph_conn(w, g, c);
+    }
+
+
+    if (g.menu_active) {
+
+        render_graph_menu(w, g)
     }
 
     //EndScissorMode();
@@ -623,11 +722,28 @@ void logic_timeline(mouse &m, timeline_data &t) {
 
 void create_node(graph_data &g, action a) {
 
-    interactable_node n;
-    n.pos = g.old_mouse_pos;
-    n.type = a.name;
+    if (a.index == -1) { 
 
-    g.nodes.push_back(n);
+        g.menu_active = 1;
+
+        int i = 0;
+        for (std::string s : g.node_names) {
+
+            action create_node = { CREATE_NODE, i, s };
+            g.action_list.push_back(create_node);
+
+            i++;
+        }
+
+    } else {
+
+        interactable_node n;
+        n.pos = g.old_mouse_pos;
+        n.type = a.name;
+
+        g.nodes.push_back(n);
+
+    }
 }
 
 void delete_node(graph_data &g, action a) {
@@ -649,12 +765,22 @@ void delete_node(graph_data &g, action a) {
 
 void create_connection(graph_data &g, action a) {
 
-    interactable_node *n1 = &(g.nodes[a.index]);
-    interactable_node *n2 = &(g.nodes[a.index2]);
+    if (g.node_conn_index == -1) {
 
-    connection c = connection(n1, n2, 0);
+        g.node_conn_index = a.index;
 
-    g.connections.push_back(c);
+    } else {
+
+        g.node_conn_index = -1;
+
+        interactable_node *n1 = &(g.nodes[a.index]);
+        interactable_node *n2 = &(g.nodes[a.index2]);
+
+        connection c = connection(n1, n2, 0);
+
+        g.connections.push_back(c);
+
+    }
 
 }
 
@@ -693,7 +819,15 @@ int intersecting_node(Vector2 pos, graph_data &g, int i) {
 
 }
 
+int intersecting_conn(Vector2 pos, graph_data &g, int i) {
 
+    connection c = g.connections[i];
+    Vector2 n1_pos = AddVector2(c.start->pos, g.offset);
+    Vector2 n2_pos = AddVector2(c.end->pos, g.offset);
+
+    return CheckCollisionPointLine(pos, n1_pos, n1_pos, 5); 
+
+}
 
 //Any item that overlaps with the click gets added
 //Do this by simply looping through every single item for now...
@@ -707,9 +841,11 @@ void update_action_list(Vector2 pos, graph_data &g) {
         //Add node actions
         if (intersecting_node(pos, g, i)) {
             
-            
-            action delete_node = { DELETE_NODE, i, 0, "" };
-            g.actions_list.push_back(delete_node);
+            action create_conn = { CREATE_CONNECTION, (int)i, "" };
+            g.action_list.push_back(create_conn);
+
+            action delete_node = { DELETE_NODE, (int)i, "" };
+            g.action_list.push_back(delete_node);
         }
 
     }
@@ -719,20 +855,23 @@ void update_action_list(Vector2 pos, graph_data &g) {
 
         //Add connection actions
         if (intersecting_connection(pos, g, i)) {
-            action delete_connection = { DELETE_CONNECTION, i, 0, "" };
-            g.actions_list.push_back(delete_connection);
+            action delete_connection = { DELETE_CONNECTION, (int)i, "" };
+            g.action_list.push_back(delete_connection);
 
         }
 
     }
 
 
+    action create_node = { CREATE_NODE, -1, "" };
+    g.action_list.push_back(create_node);
 
     //Add reset camera for funsies
-    action reset_cam = { RESET_CAMERA, 0, 0, "" }; //only type is relevant here.
+    action reset_cam = { RESET_CAMERA, -1,  "" }; //only type is relevant here.
     g.action_list.push_back(reset_cam);
+
     //Finish by adding a cancel
-    action cancel = { CANCEL, 0, 0, "" }; 
+    action cancel = { CANCEL, -1, "" }; 
     g.action_list.push_back(reset_cam);
 }
 
@@ -746,51 +885,60 @@ void logic_graph(mouse &m, graph_data &g) {
 
         if (m.left_click) {
             g.item_selected = g.item_hovered;
+            g.item_hovered  = -1;
+            g.menu_active = 0;
             if (g.item_selected != -1) {
                 do_menu_action(g);
             }
-            g.item_hovered  = -1;
-            g.menu_active = 0;
         }
 
     } else {
 
         g.hover_node_index = -1;
         for (size_t i = 0; i < g.nodes.size(); i++) {
-            interactable_node n = g.nodes[i];
-            Vector2 node_pos = AddVector2(n.pos, g.offset);
-            if (CheckCollisionPointCircle(m.pos, node_pos, g.node_radius)) {
+            if (intersecting_node(m.pos, g, i)) {
                 g.hover_node_index = i;
-                log("hooooooovering");
+                log("hover node");
             }
+        }
+
+        g.hover_conn_index = -1;
+        for (size_t i = 0; i < g.connections.size(); i++) {
+            if (intersecting_conn(m.pos, g, i)) {
+                g.hover_conn_index = i;
+                log("hover conn");
+            }
+        }
+
+        
+
+        if (m.left_click && (g.hover_node_index != -1 || g.hover_conn_index != -1)) {
+            if (g.hover_conn_index != -1) {
+                g.active_conn_index = g.hover_conn_index;
+                log("active conn set");
+            } else {
+                g.active_node_index = g.hover_node_index;
+                log("active node set");
+            }
+
         }
 
         if (m.right_click) {
             g.menu_active = 1;
+            g.old_mouse_pos = m.pos;
 
             update_action_list(m.pos, g);
 
-        }
+        } else if (m.left_down) {
 
-        if (m.left_click && g.hover_node_index != -1) {
-            g.active_node_index = g.hover_node_index;
-            log("active set");
-
-        }
-
-        //to handle connection collision
-        //bool CheckCollisionPointLine(Vector2 point, Vector2 p1, Vector2 p2, int threshold); 
-
-
-
-        if (m.left_down) {
             if (g.active_node_index == -1) {
                 g.offset = AddVector2(g.offset, m.delta);
             } else {
                 g.nodes[g.active_node_index].pos = AddVector2(g.nodes[g.active_node_index].pos, m.delta);
             }
         
-        } else {
+        } else if (m.left_released) {
+
             g.active_node_index = -1;
             log("active un-set");
         }
@@ -823,10 +971,8 @@ int main() {
 
     update_subwindow_sizes(windows, screen_size);
 
-
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screen_size.width, screen_size.height, "Biz Wiz");
-
 
     struct mouse m;
     
@@ -854,12 +1000,13 @@ int main() {
 
         update_subwindow_sizes(windows, screen_size);
 
-        m.pos         = GetMousePosition();
-        m.delta       = GetMouseDelta();
-        m.wheel_delta = GetMouseWheelMove();
-        m.left_click  = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-        m.right_click = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
-        m.left_down   = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+        m.pos           = GetMousePosition();
+        m.delta         = GetMouseDelta();
+        m.wheel_delta   = GetMouseWheelMove();
+        m.left_click    = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+        m.right_click   = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        m.left_down     = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+        m.left_released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);  
 
         window &w = get_focused_window(windows, m.pos.x, m.pos.y);
         m.pos.x -= w.x_start;
