@@ -124,7 +124,7 @@ enum Action {
 
 const std::map<Action, std::string> action_names = {
     { CANCEL, "Cancel" },
-    { CREATE_NODE, "Create node" },
+    { CREATE_NODE, "Create node" }, //split into two?
     { CREATE_CONNECTION, "Create connection" },
     { DELETE_NODE, "Delete node" },
     { DELETE_CONNECTION, "Delete connection" },
@@ -521,7 +521,17 @@ void render_graph_conn(const window &w, const graph_data &g, connection c) {
     DrawText(val.c_str(), x, y, 8, BLUE);
 }
 
-Rectangle calc_menu_pos(const mouse &m, const graph_data &g, int l) {
+Rectangle calc_menu_pos(const mouse &m, const graph_data &g) {
+
+    int l = 0;
+    for (action a : g.action_list) {
+
+        std::string s = action_to_string(a.type);
+        int action_len = MeasureText(s.c_str(), 10);
+        int name_len   = MeasureText(a.name.c_str(), 10);
+        if (name_len > 0) { name_len++; } //add space
+        if (action_len  + name_len > l) { l = action_len + name_len; }
+    }
 
     Vector2 m_pos = g.old_mouse_pos;
     int items = g.action_list.size();
@@ -541,20 +551,25 @@ Rectangle calc_menu_pos(const mouse &m, const graph_data &g, int l) {
 
 void render_graph_menu(const window &w, const graph_data &g) {
 
-    
+    Rectangle menu_loc = { w.x_start + g.menu_loc.x, w.y_start + g.menu_loc.y, g.menu_loc.width, g.menu_loc.height };
 
-    DrawRectangleRec(g.menu_loc, BROWN);
-    DrawRectangle(g.menu_loc.x + 1, g.menu_loc.y + 1, g.menu_loc.width - 2, g.item_height - 2, BLACK);     
-    DrawRectangleLines(g.menu_loc.x + 1, g.menu_loc.y + g.item_height + 1, g.menu_loc.width - 2, g.menu_loc.height - g.item_height - 2, BLACK);
+    DrawRectangleRec(menu_loc, BROWN);
+    DrawRectangle(menu_loc.x + 1, menu_loc.y + 1, menu_loc.width - 2, g.item_height - 2, BLACK);     
+    DrawRectangleLines(menu_loc.x + 1, menu_loc.y + g.item_height + 1, menu_loc.width - 2, menu_loc.height - g.item_height - 2, BLACK);
 
-    DrawText("Choose option", g.menu_loc.x + 2, g.menu_loc.y, 10, BROWN);
+    DrawText("Choose option", menu_loc.x + 2, menu_loc.y, 10, BROWN);
     int i = 0;  
     for (action a : g.action_list) {
 
         Color c = WHITE;
-        c = i == g.item_selected ? YELLOW : c;
+        c = i == g.item_hovered ? YELLOW : c;
         std::string s = action_to_string(a.type);
-        DrawText(s.c_str(), g.menu_loc.x + 2, g.menu_loc.y + g.item_height * (i+1), 10, c); 
+        DrawText(s.c_str(), menu_loc.x + 2, menu_loc.y + g.item_height * (i+1), 10, c);
+
+        if (a.name != "") {
+            int len = MeasureText(s.c_str(), 10);
+            DrawText(a.name.c_str(), menu_loc.x + 2 + len + 1, menu_loc.y + g.item_height * (i+1), 10, BLUE);
+        } 
         i++;
     }
     
@@ -719,14 +734,18 @@ void create_node(graph_data &g, action a) {
 
         g.menu_active = 1;
 
+        g.action_list.clear();
         int i = 0;
         for (std::string s : g.node_names) {
+
 
             action create_node = { CREATE_NODE, i, s };
             g.action_list.push_back(create_node);
 
             i++;
         }
+        action cancel = { CANCEL, -1, "" }; 
+        g.action_list.push_back(cancel);
 
     } else {
 
@@ -826,6 +845,8 @@ int intersecting_conn(Vector2 pos, graph_data &g, int i) {
 //Do this by simply looping through every single item for now...
 void update_action_list(Vector2 pos, graph_data &g) {
 
+    
+    g.action_list.clear();
     //For each new item sort created, simply add new for loop and set interaction actions.
 
     //NODES
@@ -865,24 +886,16 @@ void update_action_list(Vector2 pos, graph_data &g) {
 
     //Finish by adding a cancel
     action cancel = { CANCEL, -1, "" }; 
-    g.action_list.push_back(reset_cam);
+    g.action_list.push_back(cancel);
 }
 
 void logic_graph(mouse &m, graph_data &g) {
 
-    //if (g.menu_active) { g.menu_active = CheckCollisionPointRec(m.pos, g.menu_loc); }
+    if (g.menu_active) { g.menu_active = CheckCollisionPointRec(m.pos, g.menu_loc); }
 
     if (g.menu_active) {
 
-        int longest_action = 0;
-        for (action a : g.action_list) {
-
-            std::string s = action_to_string(a.type);
-            int len = MeasureText(s.c_str(), 10);
-            if (len > longest_action) { longest_action = len; }
-        }
-
-        g.menu_loc = calc_menu_pos(m, g, longest_action);
+        g.menu_loc = calc_menu_pos(m, g);
         int menu_y = m.pos.y - g.menu_loc.y;
         g.item_hovered = menu_y / g.item_height -1;
 
@@ -890,9 +903,9 @@ void logic_graph(mouse &m, graph_data &g) {
             g.item_selected = g.item_hovered;
             g.item_hovered  = -1;
             g.menu_active = 0;
-            if (g.item_selected != -1) {
+            if (g.item_selected != -1 && g.item_selected < g.action_list.size()) {
                 do_menu_action(g);
-            }
+            } 
         }
 
     } else {
@@ -933,6 +946,8 @@ void logic_graph(mouse &m, graph_data &g) {
 
             update_action_list(m.pos, g);
 
+            g.menu_loc = calc_menu_pos(m, g);
+
         } else if (m.left_down) {
 
             if (g.active_node_index == -1) {
@@ -948,10 +963,6 @@ void logic_graph(mouse &m, graph_data &g) {
         }
     }
 }
-
-            
-           
-
 
 int main() {
 
