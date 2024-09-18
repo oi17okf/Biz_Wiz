@@ -125,10 +125,10 @@ enum Action {
 const std::map<Action, std::string> action_names = {
     { CANCEL, "Cancel" },
     { CREATE_NODE, "Create node" },
-    { CREATE_CONNECTION, "SERVER_ERROR" },
-    { DELETE_NODE, "SERVER_ERROR" },
-    { DELETE_CONNECTION, "SERVER_ERROR" },
-    { RESET_CAMERA, "SERVER_ERROR" }
+    { CREATE_CONNECTION, "Create connection" },
+    { DELETE_NODE, "Delete node" },
+    { DELETE_CONNECTION, "Delete connection" },
+    { RESET_CAMERA, "Reset camera" }
 };
 
 std::string action_to_string(Action a) {
@@ -521,7 +521,7 @@ void render_graph_conn(const window &w, const graph_data &g, connection c) {
     DrawText(val.c_str(), x, y, 8, BLUE);
 }
 
-Rectangle calc_menu_pos(const window &w, const graph_data &g, int l) {
+Rectangle calc_menu_pos(const mouse &m, const graph_data &g, int l) {
 
     Vector2 m_pos = g.old_mouse_pos;
     int items = g.action_list.size();
@@ -529,11 +529,11 @@ Rectangle calc_menu_pos(const window &w, const graph_data &g, int l) {
     int width = l < 50 ? 50 : l;
 
     int x = m_pos.x - width / 2;
-    x = x < w.x_start ? w.x_start : x;
-    x = x + width > w.x_end ? x - (x + width - w.x_end) : x;
+    x = x < 0 ? 0 : x;
+    x = x + width > m.end.x ? x - (x + width - m.end.x) : x;
 
     int y = m_pos.y;
-    y = y + height > w.y_end ? y - (y + height - w.y_end) : y;
+    y = y + height > m.end.y ? y - (y + height - m.end.y) : y;
 
     Rectangle rec = { (float)x, (float)y, (float)width, (float)height };
     return rec;
@@ -541,14 +541,7 @@ Rectangle calc_menu_pos(const window &w, const graph_data &g, int l) {
 
 void render_graph_menu(const window &w, const graph_data &g) {
 
-    int longest_action = 0;
-    for (action a : g.action_list) {
-
-        std::string s = action_to_string(a.index);
-        longest_action = MeasureText(s.c_str(), 10);
-    }
-
-    g.menu_loc = calc_menu_pos(w, g, longest_action);
+    
 
     DrawRectangleRec(g.menu_loc, BROWN);
     DrawRectangle(g.menu_loc.x + 1, g.menu_loc.y + 1, g.menu_loc.width - 2, g.item_height - 2, BLACK);     
@@ -560,8 +553,8 @@ void render_graph_menu(const window &w, const graph_data &g) {
 
         Color c = WHITE;
         c = i == g.item_selected ? YELLOW : c;
-        std::string s = action_to_string(a.index);
-        DrawText(s.c_str(), g.menu_loc.x + 2, g_menu_loc.y + g.item_height * (i+1), 10, c); 
+        std::string s = action_to_string(a.type);
+        DrawText(s.c_str(), g.menu_loc.x + 2, g.menu_loc.y + g.item_height * (i+1), 10, c); 
         i++;
     }
     
@@ -589,7 +582,7 @@ void render_graph(const window &w, const graph_data &g) {
 
     if (g.menu_active) {
 
-        render_graph_menu(w, g)
+        render_graph_menu(w, g);
     }
 
     //EndScissorMode();
@@ -771,14 +764,14 @@ void create_connection(graph_data &g, action a) {
 
     } else {
 
-        g.node_conn_index = -1;
-
-        interactable_node *n1 = &(g.nodes[a.index]);
-        interactable_node *n2 = &(g.nodes[a.index2]);
+        interactable_node *n1 = &(g.nodes[g.node_conn_index]);
+        interactable_node *n2 = &(g.nodes[a.index]);
 
         connection c = connection(n1, n2, 0);
 
         g.connections.push_back(c);
+
+        g.node_conn_index = -1;
 
     }
 
@@ -815,7 +808,7 @@ int intersecting_node(Vector2 pos, graph_data &g, int i) {
 
     interactable_node n = g.nodes[i];
     Vector2 node_pos = AddVector2(n.pos, g.offset);
-    return CheckCollisionPointCircle(m.pos, node_pos, g.node_radius);
+    return CheckCollisionPointCircle(pos, node_pos, g.node_radius);
 
 }
 
@@ -825,7 +818,7 @@ int intersecting_conn(Vector2 pos, graph_data &g, int i) {
     Vector2 n1_pos = AddVector2(c.start->pos, g.offset);
     Vector2 n2_pos = AddVector2(c.end->pos, g.offset);
 
-    return CheckCollisionPointLine(pos, n1_pos, n1_pos, 5); 
+    return CheckCollisionPointLine(pos, n1_pos, n2_pos, 5); 
 
 }
 
@@ -854,7 +847,7 @@ void update_action_list(Vector2 pos, graph_data &g) {
     for (size_t i = 0; i < g.connections.size(); i++) {
 
         //Add connection actions
-        if (intersecting_connection(pos, g, i)) {
+        if (intersecting_conn(pos, g, i)) {
             action delete_connection = { DELETE_CONNECTION, (int)i, "" };
             g.action_list.push_back(delete_connection);
 
@@ -877,9 +870,19 @@ void update_action_list(Vector2 pos, graph_data &g) {
 
 void logic_graph(mouse &m, graph_data &g) {
 
-    if (g.menu_active) { g.menu_active = CheckCollisionPointRec(m.pos, g.menu_loc); }
+    //if (g.menu_active) { g.menu_active = CheckCollisionPointRec(m.pos, g.menu_loc); }
 
     if (g.menu_active) {
+
+        int longest_action = 0;
+        for (action a : g.action_list) {
+
+            std::string s = action_to_string(a.type);
+            int len = MeasureText(s.c_str(), 10);
+            if (len > longest_action) { longest_action = len; }
+        }
+
+        g.menu_loc = calc_menu_pos(m, g, longest_action);
         int menu_y = m.pos.y - g.menu_loc.y;
         g.item_hovered = menu_y / g.item_height -1;
 
@@ -924,6 +927,7 @@ void logic_graph(mouse &m, graph_data &g) {
         }
 
         if (m.right_click) {
+            log("menu activated");
             g.menu_active = 1;
             g.old_mouse_pos = m.pos;
 
