@@ -56,7 +56,7 @@ struct data_data {
     std::vector<trace> &traces;
     int scroll_index = 0;
     int length = 0;
-    int item_height = 20;
+    int item_height = 10;
     int hover_index = -1;
     int selected_index  = -1;
 
@@ -107,6 +107,7 @@ struct connection {
     interactable_node *start;
     interactable_node *end;
     int value = 0;
+    int direction = 0;
 
     connection(interactable_node* s, interactable_node* e, int v) : start(s), end(e), value(v) {}
 };
@@ -123,12 +124,12 @@ enum Action {
 };
 
 const std::map<Action, std::string> action_names = {
-    { CANCEL, "Cancel" },
-    { CREATE_NODE, "Create node" }, //split into two?
+    { CANCEL,            "Cancel" },
+    { CREATE_NODE,       "Create node" }, //split into two?
     { CREATE_CONNECTION, "Create connection" },
-    { DELETE_NODE, "Delete node" },
+    { DELETE_NODE,       "Delete node" },
     { DELETE_CONNECTION, "Delete connection" },
-    { RESET_CAMERA, "Reset camera" }
+    { RESET_CAMERA,      "Reset camera" }
 };
 
 std::string action_to_string(Action a) {
@@ -164,7 +165,7 @@ struct graph_data {
     std::vector<action> action_list;
     int item_hovered = -1;
     int item_selected = -1;
-    int item_height = 20;
+    int item_height = 15;
     Rectangle menu_loc;
     Vector2 old_mouse_pos;
     int node_conn_index = -1;
@@ -499,20 +500,26 @@ void render_data(const window &w, const data_data &d) {
 
 }
 
-void render_graph_node(const window &w, const graph_data &g, interactable_node n) {
+void render_graph_node(const window &w, const graph_data &g, interactable_node n, int hover, int active) {
 
     int x = g.offset.x + w.x_start + n.pos.x;
     int y = g.offset.y + w.y_start + n.pos.y;
-    DrawCircleLines(x, y, g.node_radius, GREEN);
+    Color c = GREEN;
+    c = hover ? DARKGREEN : c;
+    c = active ? MAROON : c;
+    DrawCircleLines(x, y, g.node_radius, c);
     DrawText(n.type.c_str(), x, y, 8, BLUE);
 }
 
-void render_graph_conn(const window &w, const graph_data &g, connection c) {
+void render_graph_conn(const window &w, const graph_data &g, connection c, int hover, int active) {
 
     Vector2 start = { g.offset.x + w.x_start + c.start->pos.x , g.offset.y + w.y_start + c.start->pos.y };
     Vector2 end   = { g.offset.x + w.x_start + c.end->pos.x   , g.offset.y + w.y_start + c.end->pos.y   };
+    Color col = GREEN;
+    col = hover ? DARKGREEN : col;
+    col = active ? MAROON : col;
 
-    DrawLineEx(start, end, 3, GREEN);
+    DrawLineEx(start, end, 3, col);
 
     std::string val = std::to_string(c.value);
     int x = (start.x + end.x) / 2; 
@@ -528,6 +535,7 @@ Rectangle calc_menu_pos(const mouse &m, const graph_data &g) {
 
         std::string s = action_to_string(a.type);
         int action_len = MeasureText(s.c_str(), 10);
+        action_len += 10; //add buffer space
         int name_len   = MeasureText(a.name.c_str(), 10);
         if (name_len > 0) { name_len++; } //add space
         if (action_len  + name_len > l) { l = action_len + name_len; }
@@ -536,7 +544,7 @@ Rectangle calc_menu_pos(const mouse &m, const graph_data &g) {
     Vector2 m_pos = g.old_mouse_pos;
     int items = g.action_list.size();
     int height = (items + 1) * g.item_height;
-    int width = l < 50 ? 50 : l;
+    int width = l < 60 ? 60 : l;
 
     int x = m_pos.x - width / 2;
     x = x < 0 ? 0 : x;
@@ -555,20 +563,20 @@ void render_graph_menu(const window &w, const graph_data &g) {
 
     DrawRectangleRec(menu_loc, BROWN);
     DrawRectangle(menu_loc.x + 1, menu_loc.y + 1, menu_loc.width - 2, g.item_height - 2, BLACK);     
-    DrawRectangleLines(menu_loc.x + 1, menu_loc.y + g.item_height + 1, menu_loc.width - 2, menu_loc.height - g.item_height - 2, BLACK);
+    DrawRectangleLines(menu_loc.x + 1, menu_loc.y + g.item_height, menu_loc.width - 2, menu_loc.height - g.item_height - 2, BLACK);
 
-    DrawText("Choose option", menu_loc.x + 2, menu_loc.y, 10, BROWN);
+    DrawText("Choose option", menu_loc.x + 4, menu_loc.y + 3, 10, BROWN);
     int i = 0;  
     for (action a : g.action_list) {
 
         Color c = WHITE;
         c = i == g.item_hovered ? YELLOW : c;
         std::string s = action_to_string(a.type);
-        DrawText(s.c_str(), menu_loc.x + 2, menu_loc.y + g.item_height * (i+1), 10, c);
+        DrawText(s.c_str(), menu_loc.x + 4, menu_loc.y + g.item_height * (i+1) + 3, 10, c);
 
         if (a.name != "") {
             int len = MeasureText(s.c_str(), 10);
-            DrawText(a.name.c_str(), menu_loc.x + 2 + len + 1, menu_loc.y + g.item_height * (i+1), 10, BLUE);
+            DrawText(a.name.c_str(), menu_loc.x + 4 + len + 3, menu_loc.y + g.item_height * (i+1) + 3, 10, SKYBLUE);
         } 
         i++;
     }
@@ -583,15 +591,18 @@ void render_graph(const window &w, const graph_data &g) {
 
     render_border(w);
 
-
+    int i = 0;
     for (interactable_node n : g.nodes) {
 
-        render_graph_node(w, g, n);
+        render_graph_node(w, g, n, g.hover_node_index == i, g.active_node_index == i);
+        i++;
     }
 
+    i = 0;
     for (connection c : g.connections) {
 
-        render_graph_conn(w, g, c);
+        render_graph_conn(w, g, c, g.hover_conn_index == i, g.active_conn_index == i);
+        i++;
     }
 
 
@@ -914,7 +925,7 @@ void logic_graph(mouse &m, graph_data &g) {
         for (size_t i = 0; i < g.nodes.size(); i++) {
             if (intersecting_node(m.pos, g, i)) {
                 g.hover_node_index = i;
-                log("hover node");
+                //log("hover node");
             }
         }
 
@@ -922,18 +933,18 @@ void logic_graph(mouse &m, graph_data &g) {
         for (size_t i = 0; i < g.connections.size(); i++) {
             if (intersecting_conn(m.pos, g, i)) {
                 g.hover_conn_index = i;
-                log("hover conn");
+                //log("hover conn");
             }
         }
 
         
 
         if (m.left_click && (g.hover_node_index != -1 || g.hover_conn_index != -1)) {
-            if (g.hover_conn_index != -1) {
-                g.active_conn_index = g.hover_conn_index;
+            if (g.hover_node_index != -1) {
+                g.active_node_index = g.hover_node_index;
                 log("active conn set");
             } else {
-                g.active_node_index = g.hover_node_index;
+                g.active_conn_index = g.hover_conn_index;
                 log("active node set");
             }
 
@@ -950,15 +961,22 @@ void logic_graph(mouse &m, graph_data &g) {
 
         } else if (m.left_down) {
 
-            if (g.active_node_index == -1) {
+            if (g.active_node_index == -1 && g.active_conn_index == -1) {
                 g.offset = AddVector2(g.offset, m.delta);
             } else {
-                g.nodes[g.active_node_index].pos = AddVector2(g.nodes[g.active_node_index].pos, m.delta);
+                if (g.active_node_index != -1) {
+                    g.nodes[g.active_node_index].pos = AddVector2(g.nodes[g.active_node_index].pos, m.delta);
+                } else {
+                    connection c = g.connections[g.active_conn_index];
+                    c.start->pos = AddVector2(c.start->pos, m.delta);
+                    c.end->pos = AddVector2(c.end->pos, m.delta);
+                }
             }
         
         } else if (m.left_released) {
 
             g.active_node_index = -1;
+            g.active_conn_index = -1;
             log("active un-set");
         }
     }
@@ -1063,7 +1081,7 @@ int main() {
             }
         }
 
-        DrawText(global_msg.c_str(), 2, 2, 8, YELLOW);
+        DrawText(global_msg.c_str(), 10, 10, 8, ORANGE);
 
         ClearBackground(RAYWHITE);
         EndDrawing();
