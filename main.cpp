@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <ctime>
 #include <limits>
+#include <math.h>
 
 using namespace tinyxml2;
 
@@ -20,7 +21,8 @@ enum WindowState {
     DATA,  
     SUMMARY,  
     TIMELINE, 
-    GRAPH    
+    GRAPH,
+    TRACE
 };
 
 
@@ -42,6 +44,7 @@ struct event {
 
 struct trace {
     std::vector<event> events;
+    int valid;
 };
 
 struct xes_data {
@@ -50,6 +53,15 @@ struct xes_data {
     float events_per_trace;
     std::vector<std::string> names;
     std::vector<trace> traces;
+};
+
+struct trace_data {
+    std::vector<trace> &traces;
+    int selected_trace;
+    int current_valid;
+    int invalid_traces;
+
+    trace_data(std::vector<trace> &t) : traces(t) {}
 };
 
 struct data_data {
@@ -83,10 +95,18 @@ struct window {
     WindowState state;
 };
 
+enum NodeType {
+    NORMAL,  
+    START,  
+    END    
+};
+
 struct interactable_node {
 
     Vector2 pos;
     std::string type;
+    int id;
+    NodeType node_type;
 };
 
 struct mouse {
@@ -107,7 +127,6 @@ struct connection {
     interactable_node *start;
     interactable_node *end;
     int value = 0;
-    int direction = 0;
 
     connection(interactable_node* s, interactable_node* e, int v) : start(s), end(e), value(v) {}
 };
@@ -119,17 +138,30 @@ enum Action {
     CREATE_CONNECTION, 
     DELETE_NODE,
     DELETE_CONNECTION,
-    RESET_CAMERA   
+    RESET_CAMERA,
+    TOGGLE_DIRECTION,
+    TOGGLE_PROCESSING,
+    CLEAR_GRAPH,
+    SET_START_NODE,
+    SET_END_NODE   
 
 };
 
+//TODO, change value to a struct that allows for better names than 'toggle'
 const std::map<Action, std::string> action_names = {
+
     { CANCEL,            "Cancel" },
     { CREATE_NODE,       "Create node" }, //split into two?
     { CREATE_CONNECTION, "Create connection" },
     { DELETE_NODE,       "Delete node" },
     { DELETE_CONNECTION, "Delete connection" },
-    { RESET_CAMERA,      "Reset camera" }
+    { RESET_CAMERA,      "Reset camera" },
+    { TOGGLE_DIRECTION,  "Toggle direction" },
+    { TOGGLE_PROCESSING, "Toggle processing" },
+    { CLEAR_GRAPH,       "Clear graph" }, 
+    { SET_END_NODE,      "Set end node" },
+    { SET_START_NODE,    "Set start node" }
+    
 };
 
 std::string action_to_string(Action a) {
@@ -152,6 +184,7 @@ struct action {
 struct graph_data {
 
     std::vector<interactable_node> nodes;
+    int nodes_created = 0;
     std::vector<connection>        connections;
     float node_radius = 10;
     Vector2 offset = { 0, 0 };
@@ -169,6 +202,8 @@ struct graph_data {
     Rectangle menu_loc;
     Vector2 old_mouse_pos;
     int node_conn_index = -1;
+    int processing = 0;
+    int traces_processed = 0;
     
 };
 
@@ -197,11 +232,18 @@ graph_data create_graph_data(xes_data &log) {
     graph_data g;
     g.node_radius = 10.0;
     g.node_names = log.names;
+    g.nodes.reserve(100); //temp solution.
+    g.connections.reserve(100);
 
-    interactable_node n1 = { 0, 0, "n1" }; //Todo remove
-    interactable_node n2 = { 50, 10, "n2" };
-    interactable_node n3 = { 0, 50, "n3" };
-    interactable_node n4 = { -20, -20, "n4" };
+    interactable_node n1 = { 0, 0, "n1", g.nodes_created }; //Todo remove
+    g.nodes_created++;
+    interactable_node n2 = { 50, 10, "n2", g.nodes_created };
+    g.nodes_created++;
+    interactable_node n3 = { 0, 50, "n3", g.nodes_created };
+    g.nodes_created++;
+    interactable_node n4 = { -20, -20, "n4", g.nodes_created };
+    g.nodes_created++;
+
     g.nodes.push_back(n1);
     g.nodes.push_back(n2);
     g.nodes.push_back(n3);
@@ -249,6 +291,7 @@ void parse_xes(XMLElement* root, xes_data &data) {
         log_trace != nullptr; log_trace = log_trace->NextSiblingElement("trace")) {
 
         trace t;
+        t.valid = 0;
 
         for (XMLElement* log_event = log_trace->FirstChildElement("event"); 
             log_event != nullptr; log_event = log_event->NextSiblingElement("event")) {
@@ -505,6 +548,8 @@ void render_graph_node(const window &w, const graph_data &g, interactable_node n
     int x = g.offset.x + w.x_start + n.pos.x;
     int y = g.offset.y + w.y_start + n.pos.y;
     Color c = GREEN;
+    c = n.node_type == START ? BLUE : c;
+    c = n.node_type == END ? YELLOW : c;
     c = hover ? DARKGREEN : c;
     c = active ? MAROON : c;
     DrawCircleLines(x, y, g.node_radius, c);
@@ -521,11 +566,27 @@ void render_graph_conn(const window &w, const graph_data &g, connection c, int h
 
     DrawLineEx(start, end, 3, col);
 
-    std::string val = std::to_string(c.value);
-    int x = (start.x + end.x) / 2; 
-    int y = (start.y + end.y) / 2; 
+    int mid_x = (start.x + end.x) / 2;
+    int mid_y = (start.y + end.y) / 2;
 
-    DrawText(val.c_str(), x, y, 8, BLUE);
+    float dx = end.x - start.x;
+    float dy = end.y - start.y;
+
+    float angle = atan2f(dy, dx);
+    int arrowSize = 20;
+
+    float arrowAngle = PI / 6; // 30 degrees
+    int arrow_x1 = mid_x - arrowSize * cosf(angle - arrowAngle);
+    int arrow_y1 = mid_y - arrowSize * sinf(angle - arrowAngle);
+    int arrow_x2 = mid_x - arrowSize * cosf(angle + arrowAngle);
+    int arrow_y2 = mid_y - arrowSize * sinf(angle + arrowAngle);
+
+    DrawLineEx({ mid_x, mid_y }, { arrow_x1, arrow_y1 }, 3, col);
+    DrawLineEx({ mid_x, mid_y }, { arrow_x2, arrow_y2 }, 3, col);
+
+    std::string val = std::to_string(c.value);
+
+    DrawText(val.c_str(), mid_x, mid_y, 8, BLUE);
 }
 
 Rectangle calc_menu_pos(const mouse &m, const graph_data &g) {
@@ -611,8 +672,53 @@ void render_graph(const window &w, const graph_data &g) {
         render_graph_menu(w, g);
     }
 
+    if (g.processing) {
+
+        std::string trace_status = "Traces processed: " + std::to_string(g.traces_processed);
+        DrawText(trace_status.c_str(), w.x_start + 10, w.y_start + 10 , 10, YELLOW);
+    }
+
     //EndScissorMode();
 
+}
+
+void render_active_trace(const window &w, trace t) {
+
+    int x = (w.x_start + w.x_end) / 2;
+
+    int y = w.y_start + 20;
+
+    Color c = t.valid ? GREEN : RED;
+
+    for (size_t i = 0; i < t.events.size(); i++) {
+
+        event &e = t.events[i];
+
+        DrawCircleLines(x, y, 10, c);
+
+        if (i != t.events.size() - 1) { 
+            DrawLineEx( {x, y}, {x, y + 30}, 3, c); 
+
+        }
+
+        DrawText(e.name.c_str(), x, y, 8, BLUE);
+        if (i != t.events.size() - 1) { 
+            y += 30;    
+        }
+    }
+}
+
+void render_trace(const window &w, const trace_data &t) {
+
+    std::string s1 = "Invalid traces: " + std::to_string(t.invalid_traces) + " Total traces: " + std::to_string(t.traces.size() - 1);
+    DrawText(s1.c_str(), w.x_start + 10, w.y_start + 10, 10, YELLOW);
+    std::string s2 = "Rendering trace " + std::to_string(t.selected_trace) + " out of " + std::to_string(t.traces.size() - 1);
+    Color c = t.current_valid ? GREEN : RED;
+    DrawText(s2.c_str(), w.x_start + 10, w.y_start + 20, 10, c);
+
+    trace active_trace = t.traces[t.selected_trace];
+
+    render_active_trace(w, active_trace);
 }
 
 
@@ -683,6 +789,16 @@ data_data create_data_data(xes_data &log) {
     return d;
 }
 
+trace_data create_trace_data(xes_data &log) {
+
+    trace_data t = { log.traces };
+    t.selected_trace = 0;
+    t.current_valid = 0;
+    t.invalid_traces = 0;
+
+    return t;
+}
+
 void update_timeline_bounds(timeline_data &timeline) {
 
     trace t = timeline.traces[timeline.trace_index];
@@ -739,6 +855,17 @@ void logic_timeline(mouse &m, timeline_data &t) {
     //todoi
 }
 
+void logic_trace(mouse &m, trace_data &t) {
+
+    t.selected_trace -= m.wheel_delta;
+    t.selected_trace = clamp(t.selected_trace, 0, t.traces.size() - 1);
+
+    trace ct = t.traces[t.selected_trace];
+
+    t.current_valid = ct.valid;
+
+}
+
 void create_node(graph_data &g, action a) {
 
     if (a.index == -1) { 
@@ -762,9 +889,14 @@ void create_node(graph_data &g, action a) {
 
         interactable_node n;
         n.pos = g.old_mouse_pos;
+        n.pos.x -= g.offset.x;
+        n.pos.y -= g.offset.y;
         n.type = a.name;
+        n.id = g.nodes_created;
 
         g.nodes.push_back(n);
+
+        g.nodes_created++;
 
     }
 }
@@ -813,6 +945,132 @@ void delete_connection(graph_data &g, action a) {
 
 }
 
+
+void set_start_node(graph_data &g, action a) {
+
+    //TODO make better solution then clearing old nodes
+    for (interactable_node &n : g.nodes) {
+        if (n.node_type == START) {
+            n.node_type = NORMAL;
+        }
+    }
+
+    g.nodes[a.index].node_type = START;
+
+}
+
+void toggle_conn_dir(graph_data &g, action a) {
+
+    connection &c = g.connections[a.index];
+    interactable_node *tmp = c.start;
+    c.start = c.end;
+    c.end = tmp;
+}
+
+void set_end_node(graph_data &g, action a) {
+
+    //TODO make better solution then clearing old nodes
+    for (interactable_node &n : g.nodes) {
+        if (n.node_type == END) {
+            n.node_type = NORMAL;
+        }
+    }
+
+    g.nodes[a.index].node_type = END;
+
+}
+
+void clear_graph(graph_data &g) {
+
+    g.connections.clear();
+    g.nodes.clear();
+    g.nodes_created = 0;
+
+}
+
+void toggle_processing(graph_data &g) {
+
+    if (g.processing == 0) {
+        g.processing = 1;
+        g.traces_processed = 0;
+    } else {
+        g.processing = 0;
+    }
+
+}
+// in which i create the most convoluted graph search possible...
+int check_trace_validity(graph_data &g, trace &t) {
+
+    std::vector<interactable_node> node_list;
+
+    for (interactable_node n : g.nodes) {
+        if (n.node_type == START) { 
+            node_list.push_back(n);
+        }
+    }
+   
+    for (event e : t.events) {
+
+        int event_valid = 0;
+        interactable_node valid_node;
+
+        for (interactable_node n : node_list) {
+
+            if (e.name == n.type) { 
+                event_valid = 1; 
+                valid_node = n;
+            }    
+        }
+
+        if (!event_valid) { 
+            t.valid = 0;
+            return 0; 
+        }
+
+        node_list.clear();
+        for (connection c : g.connections) {
+            if (c.start->id == valid_node.id) {
+                node_list.push_back(*(c.end));
+            }
+        }
+    }
+    log("YES");
+    t.valid = 1;
+    return 1;
+}
+
+int process_traces(xes_data &d, graph_data &g, int start) {
+
+    int traces = 0;
+    int i;
+    for (i = start; (i < start + 100) && (i < (int)d.traces.size()); i++) {
+
+        check_trace_validity(g, d.traces[i]);
+
+        traces++;
+    }
+
+    if (i == (int)d.traces.size()) {
+        g.processing = 0;
+    }
+
+    return traces;
+}
+
+std::vector<trace> get_invalid_traces(xes_data &d) {
+
+    std::vector<trace> invalid_traces;
+
+    for (trace t : d.traces) {
+
+        if (!t.valid) {
+            invalid_traces.push_back(t);
+        }
+    }
+
+    return invalid_traces;
+}
+
 void reset_camera(graph_data &g) {
     g.offset = { 0, 0 };
 }
@@ -829,10 +1087,17 @@ void do_menu_action(graph_data &g) {
         case CREATE_CONNECTION: { create_connection(g, a); break; }
         case DELETE_CONNECTION: { delete_connection(g, a); break; }
         case RESET_CAMERA:      { reset_camera(g);         break; }
+        case TOGGLE_DIRECTION:  { toggle_conn_dir(g, a);   break; }
+        case TOGGLE_PROCESSING: { toggle_processing(g);    break; }
+        case CLEAR_GRAPH:       { clear_graph(g);          break; }
+        case SET_START_NODE:    { set_start_node(g, a);    break; }
+        case SET_END_NODE:      { set_end_node(g, a);      break; }
   
     }
 
 }
+
+
 
 int intersecting_node(Vector2 pos, graph_data &g, int i) {
 
@@ -852,6 +1117,13 @@ int intersecting_conn(Vector2 pos, graph_data &g, int i) {
 
 }
 
+
+void add_action(std::vector<action> &l, Action action_type, int i) {
+
+    action a = { action_type, i, "" };
+    l.push_back(a);
+
+}
 //Any item that overlaps with the click gets added
 //Do this by simply looping through every single item for now...
 void update_action_list(Vector2 pos, graph_data &g) {
@@ -859,18 +1131,19 @@ void update_action_list(Vector2 pos, graph_data &g) {
     
     g.action_list.clear();
     //For each new item sort created, simply add new for loop and set interaction actions.
+    //TODO - differentiate between different items
 
     //NODES
     for (size_t i = 0; i < g.nodes.size(); i++) {
 
         //Add node actions
         if (intersecting_node(pos, g, i)) {
-            
-            action create_conn = { CREATE_CONNECTION, (int)i, "" };
-            g.action_list.push_back(create_conn);
 
-            action delete_node = { DELETE_NODE, (int)i, "" };
-            g.action_list.push_back(delete_node);
+            add_action(g.action_list, CREATE_CONNECTION, (int)i);
+            add_action(g.action_list, SET_START_NODE, (int)i);
+            add_action(g.action_list, SET_END_NODE, (int)i);
+            add_action(g.action_list, DELETE_NODE, (int)i);
+
         }
 
     }
@@ -880,27 +1153,30 @@ void update_action_list(Vector2 pos, graph_data &g) {
 
         //Add connection actions
         if (intersecting_conn(pos, g, i)) {
-            action delete_connection = { DELETE_CONNECTION, (int)i, "" };
-            g.action_list.push_back(delete_connection);
+
+            add_action(g.action_list, TOGGLE_DIRECTION, (int)i);
+            add_action(g.action_list, DELETE_CONNECTION, (int)i);
 
         }
 
     }
 
-
-    action create_node = { CREATE_NODE, -1, "" };
-    g.action_list.push_back(create_node);
-
-    //Add reset camera for funsies
-    action reset_cam = { RESET_CAMERA, -1,  "" }; //only type is relevant here.
-    g.action_list.push_back(reset_cam);
-
-    //Finish by adding a cancel
-    action cancel = { CANCEL, -1, "" }; 
-    g.action_list.push_back(cancel);
+    //Always available actions.
+    add_action(g.action_list, CREATE_NODE, -1);
+    add_action(g.action_list, TOGGLE_PROCESSING, -1);
+    add_action(g.action_list, CLEAR_GRAPH, -1);
+    add_action(g.action_list, RESET_CAMERA, -1);
+    add_action(g.action_list, CANCEL, -1);
+ 
 }
 
-void logic_graph(mouse &m, graph_data &g) {
+void logic_graph(mouse &m, graph_data &g, xes_data &d) {
+
+    if (g.processing) {
+        std::string s = "processing: " + std::to_string(g.traces_processed);
+        log(s);
+        g.traces_processed += process_traces(d, g, g.traces_processed);
+    }
 
     if (g.menu_active) { g.menu_active = CheckCollisionPointRec(m.pos, g.menu_loc); }
 
@@ -914,7 +1190,7 @@ void logic_graph(mouse &m, graph_data &g) {
             g.item_selected = g.item_hovered;
             g.item_hovered  = -1;
             g.menu_active = 0;
-            if (g.item_selected != -1 && g.item_selected < g.action_list.size()) {
+            if (g.item_selected != -1 && g.item_selected < (int)g.action_list.size()) {
                 do_menu_action(g);
             } 
         }
@@ -1018,6 +1294,7 @@ int main() {
     data_data d     = create_data_data(log_data);
     timeline_data t = create_timeline_data(log_data);
     graph_data g    = create_graph_data(log_data);
+    trace_data td    = create_trace_data(log_data);
  
 
     while (!WindowShouldClose()) {
@@ -1053,15 +1330,17 @@ int main() {
         else if (IsKeyPressed(KEY_TWO))    { w.state = SUMMARY;  } 
         else if (IsKeyPressed(KEY_THREE))  { w.state = TIMELINE; } 
         else if (IsKeyPressed(KEY_FOUR))   { w.state = GRAPH;    } 
+        else if (IsKeyPressed(KEY_FIVE))   { w.state = TRACE;    } 
 
         // &&&&&&&&&&&&&&&&&&&&& LOGIC &&&&&&&&&&&&&&&&&&
 
         switch (w.state) {
 
-            case DATA:     { logic_data    (m, d); break; }
-            case SUMMARY:  { logic_summary (m, s); break; }
-            case TIMELINE: { logic_timeline(m, t); break; }
-            case GRAPH:    { logic_graph   (m, g); break; }
+            case DATA:     { logic_data    (m, d);        break; }
+            case SUMMARY:  { logic_summary (m, s);        break; }
+            case TIMELINE: { logic_timeline(m, t);        break; }
+            case GRAPH:    { logic_graph(m, g, log_data); break; }
+            case TRACE:    { logic_trace(m, td);          break; }
 
         } 
         
@@ -1077,6 +1356,8 @@ int main() {
                 case SUMMARY:  { render_summary (w, s); break; } 
                 case TIMELINE: { render_timeline(w, t); break; }
                 case GRAPH:    { render_graph   (w, g); break; }
+                case TRACE:    { render_trace   (w, td); break; }
+
 
             }
         }

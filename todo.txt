@@ -17,7 +17,6 @@ TYPES OF WINDOWS TO IMPLEMENT
 - fix small connection stuff, 
 	add directions to conn, add event for setting direction
 
-- fix graph bug when adding new node and a connection breaks
 
 
 Known bugs:
