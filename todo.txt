@@ -1,5 +1,3 @@
-- Preproccess data before to make it easier for subwindows to render data.
-
 TYPES OF WINDOWS TO IMPLEMENT
 - Key 0. Settings Panel. i.e open a new file for reading. Only 1 file at a time. (this should not be used that much, since it will default to a hardcoded file/run param.
 - Key 1.View (almost) raw data. See everything contained in the read data file. How many traces, How many events. Event per trace. All trace keys, all event keys. 
@@ -14,12 +12,16 @@ TYPES OF WINDOWS TO IMPLEMENT
 - Key 6. 
 
 
-- fix small connection stuff, 
-	add directions to conn, add event for setting direction
 
+TODO:
+	- Connect graph better
+	- Make submenu work with everything (later)
+	- Better structure (later)
+	- Display time function
+	- Change conection times
+	- Make valid trace care about time
+	- Make invalid trace display what makes it invalid.
 
 
 Known bugs:
 - Renderer goes nuts when too much is on screen (despite it not being tthat much...)
-- Content in windows are not resized well
-- 

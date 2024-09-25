@@ -40,11 +40,21 @@ struct event {
     std::string name;
     std::string role;
     time_t time;
+    int valid;
+};
+
+struct event_conn {
+
+    int valid;
+    time_t time;
+    time_t expected_time;
 };
 
 struct trace {
     std::vector<event> events;
+    std::vector<event_conn> connections;
     int valid;
+
 };
 
 struct xes_data {
@@ -122,14 +132,33 @@ struct mouse {
 
 };
 
+enum TimeType {
+
+    NONE,
+    SECONDS,
+    MINUTES,
+    HOURS,
+    DAYS,
+    MONTHS,
+    YEARS
+};
+
 struct connection {
 
     interactable_node *start;
     interactable_node *end;
-    int value = 0;
+    time_t time;
+    TimeType active_type;
 
-    connection(interactable_node* s, interactable_node* e, int v) : start(s), end(e), value(v) {}
+    connection(interactable_node* s, interactable_node* e) : start(s), end(e) { time = 0; active_type = NONE; }
+    connection(interactable_node* s, interactable_node* e, time_t t, TimeType typ) : start(s), end(e), time(t), active_type(typ) {}
 };
+
+void display_time(time_t time, TimeType type, Vector2 loc) {
+
+
+
+}
 
 enum Action {
 
@@ -285,6 +314,17 @@ time_t parse_timestamp(const std::string& timestamp) {
     return mktime(&tm);
 }
 
+
+std::string time_to_string(time_t t) {
+
+    std::tm* t_i = std::localtime(&t);
+
+    std::ostringstream oss;
+    oss << std::put_time(t_i, "%Y-%m-%d %H:%M:%S");
+
+    return oss.str();
+}
+
 void parse_xes(XMLElement* root, xes_data &data) {
 
     for (XMLElement* log_trace = root->FirstChildElement("trace"); 
@@ -292,6 +332,7 @@ void parse_xes(XMLElement* root, xes_data &data) {
 
         trace t;
         t.valid = 0;
+        int first = 1;
 
         for (XMLElement* log_event = log_trace->FirstChildElement("event"); 
             log_event != nullptr; log_event = log_event->NextSiblingElement("event")) {
@@ -320,6 +361,15 @@ void parse_xes(XMLElement* root, xes_data &data) {
                     e.time = parse_timestamp(std::string(value));
                 }
             }
+
+            if (!first) {
+                event_conn c;
+                c.valid = 0;
+                c.expected_time = 0;
+                c.time = e.time - t.events.back().time;
+                t.connections.push_back(c);
+            }
+            first = 0;
 
             t.events.push_back(e);
         }
@@ -548,12 +598,19 @@ void render_graph_node(const window &w, const graph_data &g, interactable_node n
     int x = g.offset.x + w.x_start + n.pos.x;
     int y = g.offset.y + w.y_start + n.pos.y;
     Color c = GREEN;
-    c = n.node_type == START ? BLUE : c;
-    c = n.node_type == END ? YELLOW : c;
+
     c = hover ? DARKGREEN : c;
     c = active ? MAROON : c;
     DrawCircleLines(x, y, g.node_radius, c);
     DrawText(n.type.c_str(), x, y, 8, BLUE);
+
+    if (n.node_type == START) {
+        DrawText("S", x, y - 10, 12, RED);
+    }
+
+    if (n.node_type == END) {
+        DrawText("E", x, y - 10, 12, RED);
+    }
 }
 
 void render_graph_conn(const window &w, const graph_data &g, connection c, int hover, int active) {
@@ -573,18 +630,18 @@ void render_graph_conn(const window &w, const graph_data &g, connection c, int h
     float dy = end.y - start.y;
 
     float angle = atan2f(dy, dx);
-    int arrowSize = 20;
+    int size = 20;
 
-    float arrowAngle = PI / 6; // 30 degrees
-    int arrow_x1 = mid_x - arrowSize * cosf(angle - arrowAngle);
-    int arrow_y1 = mid_y - arrowSize * sinf(angle - arrowAngle);
-    int arrow_x2 = mid_x - arrowSize * cosf(angle + arrowAngle);
-    int arrow_y2 = mid_y - arrowSize * sinf(angle + arrowAngle);
+    float arrow_angle = PI / 6; // 30 degrees
+    int arrow_x1 = mid_x - size * cosf(angle - arrow_angle);
+    int arrow_y1 = mid_y - size * sinf(angle - arrow_angle);
+    int arrow_x2 = mid_x - size * cosf(angle + arrow_angle);
+    int arrow_y2 = mid_y - size * sinf(angle + arrow_angle);
 
     DrawLineEx({ mid_x, mid_y }, { arrow_x1, arrow_y1 }, 3, col);
     DrawLineEx({ mid_x, mid_y }, { arrow_x2, arrow_y2 }, 3, col);
 
-    std::string val = std::to_string(c.value);
+    std::string val = time_to_string(c.time);
 
     DrawText(val.c_str(), mid_x, mid_y, 8, BLUE);
 }
@@ -682,22 +739,31 @@ void render_graph(const window &w, const graph_data &g) {
 
 }
 
+
+
 void render_active_trace(const window &w, trace t) {
+
+   
 
     int x = (w.x_start + w.x_end) / 2;
 
     int y = w.y_start + 20;
 
-    Color c = t.valid ? GREEN : RED;
-
     for (size_t i = 0; i < t.events.size(); i++) {
 
         event &e = t.events[i];
 
+        Color c = e.valid ? GREEN : RED;
+
         DrawCircleLines(x, y, 10, c);
 
         if (i != t.events.size() - 1) { 
-            DrawLineEx( {x, y}, {x, y + 30}, 3, c); 
+
+            Color c1 = t.connections[i].valid ? GREEN : RED;
+            DrawLineEx( {x, y}, {x, y + 30}, 3, c1); 
+            std::string s = time_to_string(t.connections[i].time);
+            DrawText(s.c_str(), x + 10, y + 15, 8, c1);
+
 
         }
 
@@ -929,7 +995,7 @@ void create_connection(graph_data &g, action a) {
         interactable_node *n1 = &(g.nodes[g.node_conn_index]);
         interactable_node *n2 = &(g.nodes[a.index]);
 
-        connection c = connection(n1, n2, 0);
+        connection c = connection(n1, n2);
 
         g.connections.push_back(c);
 
@@ -1009,32 +1075,51 @@ int check_trace_validity(graph_data &g, trace &t) {
         }
     }
    
-    for (event e : t.events) {
+    for (event &e : t.events) { e.valid = 0; }
+    for (event_conn &c : t.connections) { c.valid = 0; }
 
-        int event_valid = 0;
+    std::vector<time_t> expected_times;
+
+    int conn_index = -1;
+    for (event &e : t.events) {
+
         interactable_node valid_node;
 
+        int time_index = 0;
         for (interactable_node n : node_list) {
 
             if (e.name == n.type) { 
-                event_valid = 1; 
+                e.valid = 1; 
                 valid_node = n;
-            }    
+                if (n.node_type != START) {
+                    t.connections[conn_index].expected_time = expected_times[time_index];
+                    if (t.connections[conn_index].time > t.connections[conn_index].expected_time) {
+                        t.connections[conn_index].valid = 1;
+                    } else {
+                        t.connections[conn_index].valid = 0;
+                    }
+                }
+            }  
+            time_index++;  
         }
 
-        if (!event_valid) { 
+        if (!e.valid) { 
             t.valid = 0;
             return 0; 
         }
 
         node_list.clear();
+        expected_times.clear();
+
         for (connection c : g.connections) {
             if (c.start->id == valid_node.id) {
                 node_list.push_back(*(c.end));
+                expected_times.push_back(c.time);
             }
         }
+        conn_index++;
     }
-    log("YES");
+
     t.valid = 1;
     return 1;
 }
