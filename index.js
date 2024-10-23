@@ -39,7 +39,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Oscar\AppData\Local\Temp\tmpvf71qmsm.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmpigkzlj27.js
 
   if (!Module['expectedDataFileDownloads']) {
     Module['expectedDataFileDownloads'] = 0;
@@ -219,21 +219,21 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
 
   })();
 
-// end include: C:\Users\Oscar\AppData\Local\Temp\tmpvf71qmsm.js
-// include: C:\Users\Oscar\AppData\Local\Temp\tmp3zr4t9nl.js
+// end include: C:\Users\Oscar\AppData\Local\Temp\tmpigkzlj27.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmpvdsmis2v.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['$ww'] || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\Oscar\AppData\Local\Temp\tmp3zr4t9nl.js
-// include: C:\Users\Oscar\AppData\Local\Temp\tmp_nbp2_g5.js
+  // end include: C:\Users\Oscar\AppData\Local\Temp\tmpvdsmis2v.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmp43k12758.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\Oscar\AppData\Local\Temp\tmp_nbp2_g5.js
+  // end include: C:\Users\Oscar\AppData\Local\Temp\tmp43k12758.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -1103,40 +1103,40 @@ function dbg(...args) {
 // === Body ===
 
 var ASM_CONSTS = {
-  105052: () => { if (document.fullscreenElement) return 1; },  
- 105098: () => { return document.getElementById('canvas').width; },  
- 105150: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 105218: () => { document.exitFullscreen(); },  
- 105245: () => { setTimeout(function() { Module.requestFullscreen(false, false); }, 100); },  
- 105318: () => { if (document.fullscreenElement) return 1; },  
- 105364: () => { return document.getElementById('canvas').width; },  
- 105416: () => { return screen.width; },  
- 105441: () => { document.exitFullscreen(); },  
- 105468: () => { setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { canvas.style.width="unset"; }, 100); }, 100); },  
- 105601: () => { if (document.fullscreenElement) return 1; },  
- 105647: () => { return document.getElementById('canvas').width; },  
- 105699: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 105767: () => { if (document.fullscreenElement) return 1; },  
- 105813: () => { return document.getElementById('canvas').width; },  
- 105865: () => { return screen.width; },  
- 105890: () => { if (document.fullscreenElement) return 1; },  
- 105936: () => { return document.getElementById('canvas').width; },  
- 105988: () => { return screen.width; },  
- 106013: () => { document.exitFullscreen(); },  
- 106040: () => { if (document.fullscreenElement) return 1; },  
- 106086: () => { return document.getElementById('canvas').width; },  
- 106138: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 106206: () => { document.exitFullscreen(); },  
- 106233: () => { return screen.width; },  
- 106258: () => { return screen.height; },  
- 106284: () => { return window.screenX; },  
- 106311: () => { return window.screenY; },  
- 106338: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 106391: ($0) => { document.getElementById("canvas").style.cursor = UTF8ToString($0); },  
- 106462: () => { document.getElementById('canvas').style.cursor = 'none'; },  
- 106519: ($0) => { document.getElementById('canvas').style.cursor = UTF8ToString($0); },  
- 106590: () => { if (document.fullscreenElement) return 1; },  
- 106636: () => { if (document.pointerLockElement) return 1; }
+  105020: () => { if (document.fullscreenElement) return 1; },  
+ 105066: () => { return document.getElementById('canvas').width; },  
+ 105118: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 105186: () => { document.exitFullscreen(); },  
+ 105213: () => { setTimeout(function() { Module.requestFullscreen(false, false); }, 100); },  
+ 105286: () => { if (document.fullscreenElement) return 1; },  
+ 105332: () => { return document.getElementById('canvas').width; },  
+ 105384: () => { return screen.width; },  
+ 105409: () => { document.exitFullscreen(); },  
+ 105436: () => { setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { canvas.style.width="unset"; }, 100); }, 100); },  
+ 105569: () => { if (document.fullscreenElement) return 1; },  
+ 105615: () => { return document.getElementById('canvas').width; },  
+ 105667: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 105735: () => { if (document.fullscreenElement) return 1; },  
+ 105781: () => { return document.getElementById('canvas').width; },  
+ 105833: () => { return screen.width; },  
+ 105858: () => { if (document.fullscreenElement) return 1; },  
+ 105904: () => { return document.getElementById('canvas').width; },  
+ 105956: () => { return screen.width; },  
+ 105981: () => { document.exitFullscreen(); },  
+ 106008: () => { if (document.fullscreenElement) return 1; },  
+ 106054: () => { return document.getElementById('canvas').width; },  
+ 106106: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 106174: () => { document.exitFullscreen(); },  
+ 106201: () => { return screen.width; },  
+ 106226: () => { return screen.height; },  
+ 106252: () => { return window.screenX; },  
+ 106279: () => { return window.screenY; },  
+ 106306: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 106359: ($0) => { document.getElementById("canvas").style.cursor = UTF8ToString($0); },  
+ 106430: () => { document.getElementById('canvas').style.cursor = 'none'; },  
+ 106487: ($0) => { document.getElementById('canvas').style.cursor = UTF8ToString($0); },  
+ 106558: () => { if (document.fullscreenElement) return 1; },  
+ 106604: () => { if (document.pointerLockElement) return 1; }
 };
 function GetWindowInnerWidth() { return window.innerWidth; }
 function GetWindowInnerHeight() { return window.innerHeight; }
@@ -4259,6 +4259,106 @@ function GetWindowInnerHeight() { return window.innerHeight; }
   var __emscripten_get_now_is_monotonic = () => nowIsMonotonic;
 
   var __emscripten_memcpy_js = (dest, src, num) => HEAPU8.copyWithin(dest, src, src + num);
+
+  var isLeapYear = (year) => year%4 === 0 && (year%100 !== 0 || year%400 === 0);
+  
+  var MONTH_DAYS_LEAP_CUMULATIVE = [0,31,60,91,121,152,182,213,244,274,305,335];
+  
+  var MONTH_DAYS_REGULAR_CUMULATIVE = [0,31,59,90,120,151,181,212,243,273,304,334];
+  var ydayFromDate = (date) => {
+      var leap = isLeapYear(date.getFullYear());
+      var monthDaysCumulative = (leap ? MONTH_DAYS_LEAP_CUMULATIVE : MONTH_DAYS_REGULAR_CUMULATIVE);
+      var yday = monthDaysCumulative[date.getMonth()] + date.getDate() - 1; // -1 since it's days since Jan 1
+  
+      return yday;
+    };
+  
+  var convertI32PairToI53Checked = (lo, hi) => {
+      assert(lo == (lo >>> 0) || lo == (lo|0)); // lo should either be a i32 or a u32
+      assert(hi === (hi|0));                    // hi should be a i32
+      return ((hi + 0x200000) >>> 0 < 0x400001 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
+    };
+  function __localtime_js(time_low, time_high,tmPtr) {
+    var time = convertI32PairToI53Checked(time_low, time_high);
+  
+    
+      var date = new Date(time*1000);
+      HEAP32[((tmPtr)>>2)] = date.getSeconds();
+      HEAP32[(((tmPtr)+(4))>>2)] = date.getMinutes();
+      HEAP32[(((tmPtr)+(8))>>2)] = date.getHours();
+      HEAP32[(((tmPtr)+(12))>>2)] = date.getDate();
+      HEAP32[(((tmPtr)+(16))>>2)] = date.getMonth();
+      HEAP32[(((tmPtr)+(20))>>2)] = date.getFullYear()-1900;
+      HEAP32[(((tmPtr)+(24))>>2)] = date.getDay();
+  
+      var yday = ydayFromDate(date)|0;
+      HEAP32[(((tmPtr)+(28))>>2)] = yday;
+      HEAP32[(((tmPtr)+(36))>>2)] = -(date.getTimezoneOffset() * 60);
+  
+      // Attention: DST is in December in South, and some regions don't have DST at all.
+      var start = new Date(date.getFullYear(), 0, 1);
+      var summerOffset = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
+      var winterOffset = start.getTimezoneOffset();
+      var dst = (summerOffset != winterOffset && date.getTimezoneOffset() == Math.min(winterOffset, summerOffset))|0;
+      HEAP32[(((tmPtr)+(32))>>2)] = dst;
+    ;
+  }
+
+  
+  /** @suppress {duplicate } */
+  var setTempRet0 = (val) => __emscripten_tempret_set(val);
+  var _setTempRet0 = setTempRet0;
+  
+  var __mktime_js = function(tmPtr) {
+  
+    var ret = (() => { 
+      var date = new Date(HEAP32[(((tmPtr)+(20))>>2)] + 1900,
+                          HEAP32[(((tmPtr)+(16))>>2)],
+                          HEAP32[(((tmPtr)+(12))>>2)],
+                          HEAP32[(((tmPtr)+(8))>>2)],
+                          HEAP32[(((tmPtr)+(4))>>2)],
+                          HEAP32[((tmPtr)>>2)],
+                          0);
+  
+      // There's an ambiguous hour when the time goes back; the tm_isdst field is
+      // used to disambiguate it.  Date() basically guesses, so we fix it up if it
+      // guessed wrong, or fill in tm_isdst with the guess if it's -1.
+      var dst = HEAP32[(((tmPtr)+(32))>>2)];
+      var guessedOffset = date.getTimezoneOffset();
+      var start = new Date(date.getFullYear(), 0, 1);
+      var summerOffset = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
+      var winterOffset = start.getTimezoneOffset();
+      var dstOffset = Math.min(winterOffset, summerOffset); // DST is in December in South
+      if (dst < 0) {
+        // Attention: some regions don't have DST at all.
+        HEAP32[(((tmPtr)+(32))>>2)] = Number(summerOffset != winterOffset && dstOffset == guessedOffset);
+      } else if ((dst > 0) != (dstOffset == guessedOffset)) {
+        var nonDstOffset = Math.max(winterOffset, summerOffset);
+        var trueOffset = dst > 0 ? dstOffset : nonDstOffset;
+        // Don't try setMinutes(date.getMinutes() + ...) -- it's messed up.
+        date.setTime(date.getTime() + (trueOffset - guessedOffset)*60000);
+      }
+  
+      HEAP32[(((tmPtr)+(24))>>2)] = date.getDay();
+      var yday = ydayFromDate(date)|0;
+      HEAP32[(((tmPtr)+(28))>>2)] = yday;
+      // To match expected behavior, update fields from date
+      HEAP32[((tmPtr)>>2)] = date.getSeconds();
+      HEAP32[(((tmPtr)+(4))>>2)] = date.getMinutes();
+      HEAP32[(((tmPtr)+(8))>>2)] = date.getHours();
+      HEAP32[(((tmPtr)+(12))>>2)] = date.getDate();
+      HEAP32[(((tmPtr)+(16))>>2)] = date.getMonth();
+      HEAP32[(((tmPtr)+(20))>>2)] = date.getYear();
+  
+      var timeMs = date.getTime();
+      if (isNaN(timeMs)) {
+        return -1;
+      }
+      // Return time in microseconds
+      return timeMs / 1000;
+     })();
+    return (setTempRet0((tempDouble = ret,(+(Math.abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? (+(Math.floor((tempDouble)/4294967296.0)))>>>0 : (~~((+(Math.ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)), ret>>>0);
+  };
 
   
   var __tzset_js = (timezone, daylight, std_name, dst_name) => {
@@ -8280,11 +8380,6 @@ function GetWindowInnerHeight() { return window.innerHeight; }
   }
 
   
-  var convertI32PairToI53Checked = (lo, hi) => {
-      assert(lo == (lo >>> 0) || lo == (lo|0)); // lo should either be a i32 or a u32
-      assert(hi === (hi|0));                    // hi should be a i32
-      return ((hi + 0x200000) >>> 0 < 0x400001 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
-    };
   function _fd_seek(fd,offset_low, offset_high,whence,newOffset) {
     var offset = convertI32PairToI53Checked(offset_low, offset_high);
   
@@ -10024,6 +10119,10 @@ var wasmImports = {
   /** @export */
   _emscripten_memcpy_js: __emscripten_memcpy_js,
   /** @export */
+  _localtime_js: __localtime_js,
+  /** @export */
+  _mktime_js: __mktime_js,
+  /** @export */
   _tzset_js: __tzset_js,
   /** @export */
   emscripten_asm_const_int: _emscripten_asm_const_int,
@@ -10563,6 +10662,7 @@ var _malloc = createExportWrapper('malloc', 1);
 var _free = createExportWrapper('free', 1);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);
+var __emscripten_tempret_set = createExportWrapper('_emscripten_tempret_set', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
 var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();
 var _emscripten_stack_get_base = () => (_emscripten_stack_get_base = wasmExports['emscripten_stack_get_base'])();
@@ -10632,7 +10732,6 @@ var missingLibrarySymbols = [
   'convertU32PairToI53',
   'stackAlloc',
   'getTempRet0',
-  'setTempRet0',
   'inetPton4',
   'inetNtop4',
   'inetPton6',
@@ -10723,8 +10822,6 @@ var missingLibrarySymbols = [
   'makePromiseCallback',
   'findMatchingCatch',
   'Browser_asyncPrepareDataCounter',
-  'isLeapYear',
-  'ydayFromDate',
   'arraySum',
   'addDays',
   'getSocketFromFD',
@@ -10765,6 +10862,7 @@ var unexportedSymbols = [
   'convertI32PairToI53Checked',
   'stackSave',
   'stackRestore',
+  'setTempRet0',
   'ptrToString',
   'zeroMemory',
   'exitJS',
@@ -10851,6 +10949,8 @@ var unexportedSymbols = [
   'MONTH_DAYS_LEAP',
   'MONTH_DAYS_REGULAR_CUMULATIVE',
   'MONTH_DAYS_LEAP_CUMULATIVE',
+  'isLeapYear',
+  'ydayFromDate',
   'SYSCALLS',
   'preloadPlugins',
   'FS_modeStringToFlags',

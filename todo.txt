@@ -13,15 +13,12 @@ TYPES OF WINDOWS TO IMPLEMENT
 
 
 
-TODO:
-	- Connect graph better
-	- Make submenu work with everything (later)
-	- Better structure (later)
-	- Display time function
-	- Change conection times
-	- Make valid trace care about time
-	- Make invalid trace display what makes it invalid.
+Todo:
+	Convert 2d to 3d.
 
 
-Known bugs:
-- Renderer goes nuts when too much is on screen (despite it not being tthat much...)
+Main idea:
+	Just make a '3d world' that displays a bunch of 'displays' that gives information in different ways regarding an event log.
+	To measure if this is useful, use a case study of someone being dropped in to the program for X minutes, then see what they have learned about the log. Also ask what parts of the program was most useful in generating understanding.
+
+
