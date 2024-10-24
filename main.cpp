@@ -138,7 +138,7 @@ enum WindowState {
 const std::map<WindowState, std::string> windowstate_names = {
 
     { DATA,     "DATA" },
-    { SUMMARY,  "SUMMARY" }, //split into two?
+    { SUMMARY,  "SUMMARY" },
     { TIMELINE, "TIMELINE" },
     { GRAPH,    "GRAPH" },
     { TRACE,    "TRACE" },  
@@ -216,7 +216,7 @@ const std::map<Action, std::string> action_names = {
     { DELETE_CONNECTION, "Delete connection" },
     { RESET_CAMERA,      "Reset camera" },
     { TOGGLE_DIRECTION,  "Toggle direction" },
-    { TOGGLE_PROCESSING, "Toggle processing" },
+    { TOGGLE_PROCESSING, "Toggle_Processing" },
     { CLEAR_GRAPH,       "Clear graph" }, 
     { SET_END_NODE,      "Set end node" },
     { SET_START_NODE,    "Set start node" },
@@ -240,6 +240,35 @@ std::string action_to_string(Action a) {
     else                          { return "UNKNOWN ACTION"; }
 }
 
+Action string_to_action(std::string s) {
+
+    for (auto it = action_names.begin(); it != action_names.end(); it++) {
+
+        if (it->second == s) { return it->first; }
+
+    }
+
+    log("Action not found, returning CANCEL as backup...");
+    return CANCEL;
+}
+
+struct action_remove_screen {
+
+    Action type;
+    vector<screen_3D> &screens;
+    int index;
+
+};
+
+struct action_cancel {
+
+    Action type = CANCEL;
+};
+
+std::vector<action*>
+
+void add_action_cancel(action_list())
+
 struct action {
 
     Action type;
@@ -252,6 +281,18 @@ struct action {
     int pre_action;
     action* a;
     // like pre-action?
+
+    //traces
+    //graph
+    //buttons
+    //displays
+    //screens
+    //textures
+    //menu + actionlist
+    //mouse
+    //map
+    //index1 + index3
+    //prev action?
 
 };
 
@@ -266,6 +307,57 @@ void clear_action_list(std::vector<action> &action_list) {
     }
 
     action_list.clear();
+
+}
+
+enum DisplayType {
+
+    SINGLE_TRACE_TIME;
+    SINGLE_TRACE_X;
+    MULTIPLE_TRACE_TIME;
+    MULTIPLE_TRACE_X;
+
+};
+
+const std::map<DisplayType, std::string> displaytype_names = {
+
+    { SINGLE_TRACE_TIME,   "SINGLE_TRACE_TIME" },
+    { SINGLE_TRACE_X,      "SINGLE_TRACE_X" }, 
+    { MULTIPLE_TRACE_TIME, "MULTIPLE_TRACE_TIME" },
+    { MULTIPLE_TRACE_X,    "MULTIPLE_TRACE_X" },
+};
+
+std::string displaytype_to_string(DisplayType d) {
+
+    auto it = displaytype_names.find(d);
+
+    if (it != displaytype_names.end()) { return it->second;       } 
+    else                               { return "UNKNOWN DISPLAYTYPE"; }
+}
+
+WindowState string_to_displaytype(std::string s) {
+
+    for (auto it = displaytype_names.begin(); it != displaytype_names.end(); it++) {
+
+        if (it->second == s) { return it->first; }
+
+    }
+
+    log("Displaytype not found, returning SINGLE_TRACE_TIME as backup...");
+    return SINGLE_TRACE_TIME;
+}
+
+struct display_3D {
+
+    Vector3 loc;
+    std::vector<trace> &traces;
+    int index;
+    Vector3 coords;
+
+    DisplayType type;
+
+    display_3D(std::vector<trace> &t) : traces(t) {}
+
 
 }
 
@@ -285,9 +377,9 @@ struct screen_3D {
 struct button_3D {
 
     Vector3 pos;
-    float rot = 0;
     int pressed = 0;
     action a;
+    std::string name;
 
 };
 
@@ -469,6 +561,44 @@ struct graph_data {
     
 };
 
+void create_display(Vector3 loc, std::vector<trace> &traces, DisplayType type, std::vector<display_3D> &displays) {
+
+    display_3D display = { traces };
+    display.loc = loc;
+    display.type = type;
+
+    displays.push_back(display);
+}
+
+void remove_display(int index, std::vector<display_3D> &displays) {
+   
+    screens.erase(screens.begin() + index);
+
+}
+
+void create_display_a(action a, menu *m, std::vector<trace> &traces, std::vector<display_3D> &displays) {
+
+    if (a.index == -1) {
+        m->active = 1;
+        m->action_list.clear();
+        int i = 0;
+        for (auto w : displaytype_names) {
+            
+            action create_screen = { CREATE_DISPLAY, i, w.second, a.index_3D, 0 };
+            m->action_list.push_back(create_screen);
+            i++;
+
+        }
+    } else {
+        DisplayType state = string_to_displaytype(a.name);
+        a.index_3D.y = 0.5;
+        a.index_3D.x = std::round(a.index_3D.x);
+        a.index_3D.z = std::round(a.index_3D.z);
+        create_display(a.index_3D, traces, state, displays);
+    }
+ 
+}
+
 
 void create_screen(Vector3 loc, float width, float height, float rot, WindowState type, std::map<WindowState, RenderTexture2D> &render_textures, std::vector<screen_3D> &screens) {
 
@@ -492,9 +622,30 @@ void create_screen(Vector3 loc, float width, float height, float rot, WindowStat
 
 }
 
-//void create_screen_a(action a, WindowState type, std::map<WindowState, RenderTexture2D> &rt, std::vector<screen_3D> &s) {
-//    create_screen(a.index_3D, )
-//}
+
+//Todo - move this to use submenu? also other 2-click actions... except save/load maybe
+void create_screen_a(action a, menu *m, std::map<WindowState, RenderTexture2D> &rt, std::vector<screen_3D> &s) {
+
+    if (a.index == -1) {
+        m->active = 1;
+        m->action_list.clear();
+        int i = 0;
+        for (auto w : windowstate_names) {
+            
+            action create_screen = { CREATE_SCREEN, i, w.second, a.index_3D, 0 };
+            m->action_list.push_back(create_screen);
+            i++;
+
+        }
+    } else {
+        WindowState state = string_to_windowstate(a.name);
+        a.index_3D.y = 0.5;
+        a.index_3D.x = std::round(a.index_3D.x);
+        a.index_3D.z = std::round(a.index_3D.z);
+        create_screen(a.index_3D, 1, 1, 0, state, rt, s);
+    }
+ 
+}
 
 void remove_screen(int index, std::map<WindowState, RenderTexture2D> &render_textures, std::vector<screen_3D> &screens) {
 
@@ -552,14 +703,23 @@ struct Collision_Results {
 
 
 
-void add_button(std::vector<button_3D> &buttons, Action a, Vector3 loc, float rot) {
+void press_button(std::vector<button_3D> &buttons, action a) {
+
+    button_3D &b = buttons[a.index];
+    b.pressed = 60;
+    do_action(b.action)
+
+}
+
+void add_button(std::vector<button_3D> &buttons, Action a, Vector3 loc) {
 
     button_3D b;
     b.pos = loc;
-    b.rot = rot;
+    b.pressed = 0;
 
     action ac = { a, -1, "" };
     b.a = ac;
+    b.name = action_to_string(a);
 
     buttons.push_back(b);
 
@@ -579,6 +739,7 @@ void DrawButton(const button_3D &b) {
 void DrawButtons(std::vector<button_3D> &buttons) {
 
     for (button_3D &b : buttons) {
+        if (b.pressed > 0) { b.pressed--; }
         DrawButton(b);
     }
 }
@@ -1851,10 +2012,12 @@ enum ReadMapMode {
     NOTHINGMODE,
     MAPMODE,
     SCREENMODE,
-    DISPLAYMODE
+    DISPLAYMODE,
+    BUTTONMODE
 };
 
-void load_state(std::map<WindowState, RenderTexture2D> &render_textures, std::vector<screen_3D> &screens) {
+void load_state(std::map<WindowState, RenderTexture2D> &render_textures, std::vector<screen_3D> &screens, 
+    std::vector<display_3D> &displays, std::vector<button_3D> &buttons, std::vector<trace> &traces) {
 
     std::ifstream file(map_file);  // Open the file
     if (!file) { log("unable to open map file"); return; }
@@ -1869,7 +2032,8 @@ void load_state(std::map<WindowState, RenderTexture2D> &render_textures, std::ve
         if      (line.find("MAP")      != -1 && mode == NOTHINGMODE) { mode = MAPMODE;     continue; }
         else if (line.find("SCREENS")  != -1 && mode == NOTHINGMODE) { mode = SCREENMODE;  continue; }
         else if (line.find("DISPLAYS") != -1 && mode == NOTHINGMODE) { mode = DISPLAYMODE; continue; }
-        else if (line.find("END")      != -1)                    { mode = NOTHINGMODE; continue; }
+        else if (line.find("BUTTONS")  != -1 && mode == NOTHINGMODE) { mode = BUTTONMODE;  continue; }
+        else if (line.find("END")      != -1)                        { mode = NOTHINGMODE; continue; }
 
         std::stringstream ss(line);
         switch (mode) {
@@ -1898,22 +2062,53 @@ void load_state(std::map<WindowState, RenderTexture2D> &render_textures, std::ve
                 Vector3 pos = (Vector3) { x, y, z };
                 WindowState type = string_to_windowstate(type_string);
                 create_screen(pos, 1, 1, rot, type, render_textures, screens);
-                //Add screen to screens vector
+
             }
 
             case DISPLAYMODE: {
-                continue;
+                std::string start;
+                std::string end;
+                float x;
+                float y;
+                float z;
+                std::string type_string;
+                
                 //Add display to displays vector
+                ss >> start >> type_string >> x >> y >> z >> end;
+                if (start != "{") { log("parse error1"); }
+                if (end   != "}") { log("parse error2"); }
+
+                Vector3 pos = (Vector3) { x, y, z };
+                DisplayType type = string_to_windowstate(type_string);
+                create_display(loc, traces, type, displays);
+
+            }
+
+            case BUTTONMODE: {
+                std::string start;
+                std::string end;
+                float x;
+                float y;
+                float z;
+                std::string type_string;
+                
+                //Add display to displays vector
+                ss >> start >> type_string >> x >> y >> z >> end;
+                if (start != "{") { log("parse error1"); }
+                if (end   != "}") { log("parse error2"); }
+
+                Vector3 pos = (Vector3) { x, y, z };
+                Action a = string_to_action(action_string);
+                add_button(buttons, a, pos);
             }
 
         }
-
 
     }
 
 }
 
-void save_state(const std::vector<screen_3D> &screens) {
+void save_state(const std::vector<screen_3D> &screens, const std::vector<display_3D> &displays, const std::vector<button_3D> &buttons) {
 
     std::ofstream file(map_file);
     if (!file.is_open()) { log("unable to save state"); return; }
@@ -1931,17 +2126,40 @@ void save_state(const std::vector<screen_3D> &screens) {
         file << std::to_string(screen.rot) << " ";
         file << "}" << std::endl;
     }
-    file << "END" << std::endl;
+    file << "END" << std::endl << std::endl;
 
     //DISPLAYS
+    file << "DISPLAYS" << std::endl;
+    for (display_3D display : displays) {
 
+        file << "{ ";
+        file << displaytype_to_string(display.type) << " ";
+        file << std::to_string(display.loc.x) << " " << std::to_string(display.loc.y) << " " << std::to_string(display.loc.z) << " ";
+        file << "}" << std::endl;
+    }
+    file << "END" << std::endl << std::endl;
+
+    //BUTTONS
+    file << "BUTTONS" << std::endl;
+    for (button_3D button : buttons) {
+
+        file << "{ ";
+        file << action_to_string(button.type) << " ";
+        file << std::to_string(button.pos.x) << " " << std::to_string(dbutton.pos.y) << " " << std::to_string(button.pos.z) << " ";
+        file << "}" << std::endl;
+    }
+    file << "END" << std::endl << std::endl;
 
     file.close();
 }
 
 
 //rework this later...
-void do_action(action a, graph_data &g, mouse &m, cubic_map &c, std::map<WindowState, RenderTexture2D> &render_textures, std::vector<screen_3D> &screens) {
+// send in a base_action_pointer
+// switch on its type and cast to whats needed, then call the function it uses.
+// or atleast make a generic large action thats stores refs to everything necessary, and all commands take it.
+void do_action(action a, menu *menu, graph_data &g, mouse &m, cubic_map &c, std::map<WindowState, RenderTexture2D> &render_textures, 
+    std::vector<screen_3D> &screens, std::vector<display_3D> &displays, std::vector<display_3D> &buttons, std::vector<trace> &traces) {
 
     switch (a.type) {
 
@@ -1959,10 +2177,12 @@ void do_action(action a, graph_data &g, mouse &m, cubic_map &c, std::map<WindowS
         case REMOVE_WALL:       { remove_wall(a, c);       break; }
         case MAKE_WALL:         { make_wall(a, c);         break; }
         case HIDE_MOUSE:        { hide_mouse(m);           break; }
-        case LOAD_STATE:        { load_state(render_textures, screens);           break; }
-        case SAVE_STATE:        { save_state(screens);           break; }
-        case REMOVE_SCREEN:     { remove_screen_a(a, render_textures, screens);           break; }
-        //case CREATE_SCREEN:     { create_screen_a(a, render_textures, screens);           break; }
+        case LOAD_STATE:        { load_state(render_textures, screens);         break; }
+        case SAVE_STATE:        { save_state(screens);                          break; }
+        case REMOVE_SCREEN:     { remove_screen_a(a, render_textures, screens); break; }
+        case CREATE_SCREEN:     { create_screen_a(a, menu, render_textures, screens); break; }
+        case REMOVE_DISPLAY:    { remove_display_a(a, displays); break; }
+        case CREATE_DISPLAY:    { create_display_a(a, menu, traces, displays); break; }
   
     }
 
@@ -1974,6 +2194,7 @@ int intersecting_node(Vector2 pos, graph_data &g, int i) {
 
     interactable_node n = g.nodes[i];
     Vector2 node_pos = AddVector2(n.pos, g.offset);
+
     return CheckCollisionPointCircle(pos, node_pos, g.node_radius);
 
 }
@@ -2004,7 +2225,7 @@ void add_action(std::vector<action> &l, Action action_type, int i) {
 
 }
 
-void add_action_3D(std::vector<action> &l, Action action_type, Vector3 index_3D) {
+void add_action(std::vector<action> &l, Action action_type, Vector3 index_3D) {
 
     action a;
 
@@ -2019,8 +2240,7 @@ void add_action_3D(std::vector<action> &l, Action action_type, Vector3 index_3D)
     
 }
 
-//XD
-void add_action_pre(std::vector<action> &l, Action type1, int i1, Action type2, int i2) {
+void add_action(std::vector<action> &l, Action type1, int i1, Action type2, int i2) {
 
     action a;
 
@@ -2097,19 +2317,20 @@ void update_action_list_3D(std::vector<action> &action_list, Collision_Results &
     switch (res.type) {
 
         case NO_COLLISION:     { break; }
-        case SCREEN:           { 
+        case SCREEN:           {
+            //add_remove_screen_action(action_list, screens, index)
             add_action(action_list, REMOVE_SCREEN, res.index);
             break; 
         }
         case OTHER:            { break; }
         case CUBICMAP_DEFAULT: { 
-            add_action_3D(action_list, REMOVE_WALL, res.end_point);
+            add_action(action_list, REMOVE_WALL, res.end_point);
             break; 
         }
         case CUBICMAP_FLOOR:   { }
         case CUBICMAP_CEILING: { 
-            add_action_3D(action_list, MAKE_WALL, res.end_point);
-            add_action_3D(action_list, CREATE_SCREEN, res.end_point);
+            add_action(action_list, MAKE_WALL, res.end_point);
+            add_action(action_list, CREATE_SCREEN, res.end_point);
             break; 
         }
 
@@ -2154,11 +2375,11 @@ void update_menu_index_hovered(menu* menu, mouse &mouse) {
 
 }
 
-void left_click_action(menu* menu, graph_data &g, mouse& m, cubic_map &c, std::map<WindowState, RenderTexture2D> &rt, std::vector<screen_3D> &s) {
+void left_click_action(menu* menu, graph_data &g, mouse& m, cubic_map &c, std::map<WindowState, RenderTexture2D> &rt, std::vector<screen_3D> &s, std::vector<trace> &traces) {
 
     if (menu->index_hovered == -1) {
         if (menu->sub_menu_exists) {
-            left_click_action(menu->sub_menu, g, m, c, rt, s);
+            left_click_action(menu->sub_menu, g, m, c, rt, s, traces);
         } else {
             log("menu broken 1");
         }
@@ -2169,7 +2390,7 @@ void left_click_action(menu* menu, graph_data &g, mouse& m, cubic_map &c, std::m
         //sanity check
         if (menu->index_selected < (int)menu->action_list.size()) {  
             action a = menu->action_list[menu->index_selected];         
-            do_action(a, g, m, c, rt, s);
+            do_action(a, menu, g, m, c, rt, s, traces);
         } else {
             log("menu broken2");
         }
@@ -2563,11 +2784,10 @@ int main() {
     //Vector2 res = { windows[0].x_end - windows[0].x_start, windows[0].y_end - windows[0].y_start };
 
     std::vector<screen_3D> screens;
-    load_state(render_textures, screens);
-    //create_screen((Vector3){ 2.0f, 0.5f, 2.0f }, 1.0f, 1.0f, 0.0f, GRAPH, render_textures, screens);
-
+    std::vector<display_3D> displays;
     std::vector<button_3D> buttons;
-    add_button(buttons, TOGGLE_PROCESSING, (Vector3) { 4, 0, 4 }, 0);
+    load_state(render_textures, screens, displays, buttons, logdata.traces);
+    //create_screen((Vector3){ 2.0f, 0.5f, 2.0f }, 1.0f, 1.0f, 0.0f, GRAPH, render_textures, screens);
 
     cubic_map cubic_map = generate_cubic_map("cubicmap.png", "cubicmap_atlas1.png");
 
@@ -2633,7 +2853,6 @@ int main() {
             update_action_list_3D(menu.action_list, col_res);
 
             if (m.right_click) {
-                log("state2");
                 menu.active = 1;
                 menu.old_mouse_pos = m.pos;
                 menu.pos = calc_menu_pos(m, menu);
@@ -2645,7 +2864,6 @@ int main() {
 
         } else {
             col_res.type = NO_COLLISION;
-            //log("state3");
 
             Camera old_cam = camera;        
 

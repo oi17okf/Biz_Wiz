@@ -22,3 +22,23 @@ Main idea:
 	To measure if this is useful, use a case study of someone being dropped in to the program for X minutes, then see what they have learned about the log. Also ask what parts of the program was most useful in generating understanding.
 
 
+
+
+Om man byter action sätt:
+
+1. Skapa enum Action kategori.
+2. Fyll i sträng-översätning
+3. Skapa struct gällande den actionen som innehåller allt som behövs för den.
+4. Skapa funktion som utifrån det som behövs bygger structen.
+5. Skapa funktion som helt utifrån den nyskapade structen gör det som Actionen ska göra.
+6. Lägg till case i do_action som kallar functionen
+7. Skapa Action och lägg till på godtagligt ställe (t.ex i collision check). 
+	Men spelar inte så stor roll vart man lägger till.
+	Bara det blir smidigt...
+
+3 + 4 + 5 Går att göra först, sen koppla ihop allt som behövs efter.
+
+För att göra detta så måste man även byta ut action_list till std::vector<action*>, då kan 4. bara kalla new, 
+	sen tar clear_action_list hand om delete.
+
+Detta borde gå right? Blir ju lite mer kod att skriva just nu men gör ju allt mkt simplare i längden?
