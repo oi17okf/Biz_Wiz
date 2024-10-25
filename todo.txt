@@ -42,3 +42,5 @@ För att göra detta så måste man även byta ut action_list till std::vector<a
 	sen tar clear_action_list hand om delete.
 
 Detta borde gå right? Blir ju lite mer kod att skriva just nu men gör ju allt mkt simplare i längden?
+
+Borde någ lägga till state i main-menu? &&&&&&&&&&&&&&&&

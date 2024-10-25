@@ -206,6 +206,140 @@ enum Action {
 
 };
 
+struct action_create_node {
+    Action type;
+    int index;
+    graph_data &g;
+    menu &menu;
+
+    action_create_node(int i, graph_data &g, menu &menu) : type(CREATE_NODE), index(i), g(g), menu(menu) {}
+
+};
+
+struct action_create_connection {
+    Action type;
+    int index;
+    graph_data &g;
+
+    action_create_connection(int i, graph_data &g) : type(CREATE_CONNECTION), index(i), g(g) {}
+};
+
+struct action_delete_node {
+    Action type;
+    int index;
+    graph_data &g;
+
+    action_delete_node(int i, graph_data &g) : type(DELETE_NODE), index(i), g(g) {}
+};
+
+struct action_delete_connection {
+    Action type;
+    int index;
+    graph_data &g;
+
+    action_delete_connection(int i, graph_data &g) : type(DELETE_CONNECTION), index(i), g(g) {}
+};
+
+struct action_reset_camera {
+    Action type;
+    graph_data &g;
+
+    action_reset_camera(graph_data &g) : type(RESET_CAMERA), g(g) {}
+};
+
+struct action_toggle_direction {
+    Action type;
+    int index;
+    graph_data &g;
+
+    action_toggle_direction(int i, graph_data &g) : type(TOGGLE_DIRECTION), index(i), g(g) {}
+};
+
+struct action_toggle_processing {
+    Action type;
+    graph_data &g;
+
+    action_toggle_processing(graph_data &g) : type(TOGGLE_PROCESSING), g(g) {}
+};
+
+struct action_clear_graph {
+    Action type;
+    graph_data &g;
+
+    action_clear_graph(graph_data &g) : type(CLEAR_GRAPH), g(g) {}
+};
+
+struct action_set_end_node {
+    Action type;
+    int index;
+    graph_data &g;
+
+    action_set_end_node(int i, graph_data &g) : type(SET_END_NODE), index(i), g(g) {}
+};
+
+struct action_set_start_node {
+    Action type;
+    int index;
+    graph_data &g;
+
+    action_set_start_node(int i, graph_data &g) : type(SET_START_NODE), index(i), g(g) {}
+};
+
+struct action_make_wall {
+    Action type;
+
+    action_make_wall() : type(MAKE_WALL) {}
+};
+
+struct action_remove_wall {
+    Action type;
+
+    action_remove_wall() : type(REMOVE_WALL) {}
+};
+
+struct action_hide_mouse {
+    Action type;
+    mouse &m;
+
+    action_hide_mouse(mouse &mouse_ref) : type(HIDE_MOUSE), m(mouse_ref) {}
+};
+
+struct action_create_screen {
+    Action type;
+
+    action_create_screen() : type(CREATE_SCREEN) {}
+};
+
+struct action_remove_screen {
+    Action type;
+
+    action_remove_screen() : type(REMOVE_SCREEN) {}
+};
+
+struct action_create_display {
+    Action type;
+
+    action_create_display() : type(CREATE_DISPLAY) {}
+};
+
+struct action_remove_display {
+    Action type;
+
+    action_remove_display() : type(REMOVE_DISPLAY) {}
+};
+
+struct action_save_state {
+    Action type;
+
+    action_save_state() : type(SAVE_STATE) {}
+};
+
+struct action_load_state {
+    Action type;
+
+    action_load_state() : type(LOAD_STATE) {}
+};
+
 //TODO, change value to a struct that allows for better names than 'toggle'
 const std::map<Action, std::string> action_names = {
 
@@ -223,7 +357,7 @@ const std::map<Action, std::string> action_names = {
     { MAKE_WALL,         "Make wall" },
     { REMOVE_WALL,       "Remove wall" },
     { HIDE_MOUSE,        "Hide mouse" },
-    { CREATE_SCREEN,     "Create screen" },
+    { CREATE_SCREEN,     "Create screen" }, //mash into object later?
     { REMOVE_SCREEN,     "Remove screen" },
     { CREATE_DISPLAY,    "Create display" },
     { REMOVE_DISPLAY,    "Remove display" },
@@ -267,7 +401,6 @@ struct action_cancel {
 
 std::vector<action*>
 
-void add_action_cancel(action_list())
 
 struct action {
 
@@ -282,17 +415,6 @@ struct action {
     action* a;
     // like pre-action?
 
-    //traces
-    //graph
-    //buttons
-    //displays
-    //screens
-    //textures
-    //menu + actionlist
-    //mouse
-    //map
-    //index1 + index3
-    //prev action?
 
 };
 
@@ -527,7 +649,7 @@ struct connection {
 struct menu {
 
     int active = 0;
-    std::vector<action> action_list;
+    std::vector<action*> action_list;
 
     int index_hovered  = -1;
     int index_selected = -1;
@@ -559,6 +681,18 @@ struct graph_data {
     int processing = 0;
     int traces_processed = 0;
     
+};
+
+struct world {
+
+    std::map<WindowState, RenderTexture2D> render_textures;
+    std::vector<screen_3D> screens; 
+    std::vector<display_3D> displays; 
+    std::vector<button_3D> buttons; 
+    cubic_map cubic_map;
+    std::vector<trace> traces;
+    Camera camera;
+
 };
 
 void create_display(Vector3 loc, std::vector<trace> &traces, DisplayType type, std::vector<display_3D> &displays) {
@@ -1414,7 +1548,13 @@ void render_menu(const window &w, const menu &menu) {
 
     DrawText("Choose option", menu_loc.x + 4, menu_loc.y + 3, 10, BROWN);
     int i = 0;  
+
+    //i loopen kan man switcha på typ om så behövs.
+
     for (action a : menu.action_list) {
+
+        //typ if (a.type == CREATE_NODE) { }
+        // else bla bla
 
         Color c = WHITE;
         c = i == menu.index_hovered ? YELLOW : c;
@@ -1740,9 +1880,9 @@ void logic_trace(mouse &m, trace_data &t) {
 
 }
 
-void create_node(graph_data &g, action a) {
+void create_node(action_create_node* a) {
 
-    if (a.index == -1) { 
+    if (a->index == -1) { 
 
         g.menu.active = 1;
 
@@ -1968,11 +2108,11 @@ void reset_camera(graph_data &g) {
     g.offset = { 0, 0 };
 }
 
-void hide_mouse(mouse &m) {
+void hide_mouse(action_hide_mouse* a) {
 
-    if (m.active == 0) { log("hide mouse called when it should not have been"); }
+    if (a.m.active == 0) { log("hide mouse called when it should not have been"); }
 
-    m.active = 0;
+    a.m.active = 0;
     DisableCursor();  
 
 
@@ -2158,7 +2298,7 @@ void save_state(const std::vector<screen_3D> &screens, const std::vector<display
 // send in a base_action_pointer
 // switch on its type and cast to whats needed, then call the function it uses.
 // or atleast make a generic large action thats stores refs to everything necessary, and all commands take it.
-void do_action(action a, menu *menu, graph_data &g, mouse &m, cubic_map &c, std::map<WindowState, RenderTexture2D> &render_textures, 
+void do_action(action* a, menu *menu, graph_data &g, mouse &m, cubic_map &c, std::map<WindowState, RenderTexture2D> &render_textures, 
     std::vector<screen_3D> &screens, std::vector<display_3D> &displays, std::vector<display_3D> &buttons, std::vector<trace> &traces) {
 
     switch (a.type) {
@@ -2176,7 +2316,9 @@ void do_action(action a, menu *menu, graph_data &g, mouse &m, cubic_map &c, std:
         case SET_END_NODE:      { set_end_node(g, a);      break; }
         case REMOVE_WALL:       { remove_wall(a, c);       break; }
         case MAKE_WALL:         { make_wall(a, c);         break; }
-        case HIDE_MOUSE:        { hide_mouse(m);           break; }
+
+        case HIDE_MOUSE:        { hide_mouse((action_hide_mouse*)a);           break; }
+
         case LOAD_STATE:        { load_state(render_textures, screens);         break; }
         case SAVE_STATE:        { save_state(screens);                          break; }
         case REMOVE_SCREEN:     { remove_screen_a(a, render_textures, screens); break; }
@@ -2207,6 +2349,22 @@ int intersecting_conn(Vector2 pos, graph_data &g, int i) {
 
     return CheckCollisionPointLine(pos, n1_pos, n2_pos, 5); 
 
+}
+
+assert(int true, std::string msg) {
+
+    if (true == 0) {
+
+        log("assert failed: " + msg);
+
+    }
+}
+
+void add_action(Action type, std::vector<action*> &l, action* a) {
+
+    assert(type == a->type, "in add_action, mismatching types");
+
+    l.push_back(a);
 }
 
 
@@ -2310,7 +2468,7 @@ void update_graph_action_list(Vector2 pos, std::vector<action> &action_list, gra
 
 
 // todo - make it add ALL actions, not just 1 type
-void update_action_list_3D(std::vector<action> &action_list, Collision_Results &res) {
+void update_action_list_3D(std::vector<action*> &action_list, Collision_Results &res) {
 
     clear_action_list(action_list);
 
@@ -2338,8 +2496,9 @@ void update_action_list_3D(std::vector<action> &action_list, Collision_Results &
 
     add_action(action_list, SAVE_STATE, -1);
     add_action(action_list, LOAD_STATE, -1);
-    add_action(action_list, HIDE_MOUSE, -1);
-    add_action(action_list, CANCEL, -1);
+
+    add_action(HIDE_MOUSE, action_list, (action*) new action_hide_mouse(m))
+    add_action(CANCEL,     action_list, (action*) new action_cancel());
 }
 
 int menu_still_active(menu* menu, mouse &mouse) {
@@ -2763,8 +2922,6 @@ int main() {
 
     struct mouse m;
     hide_mouse(m);
-
-    std::map<WindowState, RenderTexture2D> render_textures;
     
     XMLDocument xes_doc;
     XMLElement* root_log = open_xes(xes_filename, xes_doc);
@@ -2782,14 +2939,10 @@ int main() {
     trace_data td   = create_trace_data(log_data);
 
     //Vector2 res = { windows[0].x_end - windows[0].x_start, windows[0].y_end - windows[0].y_start };
-
-    std::vector<screen_3D> screens;
-    std::vector<display_3D> displays;
-    std::vector<button_3D> buttons;
-    load_state(render_textures, screens, displays, buttons, logdata.traces);
+    world world;
+    world.cubic_map = generate_cubic_map("cubicmap.png", "cubicmap_atlas1.png");
+    load_state(world);
     //create_screen((Vector3){ 2.0f, 0.5f, 2.0f }, 1.0f, 1.0f, 0.0f, GRAPH, render_textures, screens);
-
-    cubic_map cubic_map = generate_cubic_map("cubicmap.png", "cubicmap_atlas1.png");
 
     std::string action = "";
 
