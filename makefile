@@ -7,7 +7,7 @@ RAYLIB_WEB_LIB_PATH     = C:\Users\Oscar\Desktop\raylib\src\web
 RAYLIB_INCLUDE_PATH     = C:\Users\Oscar\Desktop\raylib\src
 
 # Common compiler flags
-CFLAGS = -Wall -std=c++11 -I$(RAYLIB_INCLUDE_PATH) -lraylib
+CFLAGS = -Wall -std=c++11 -I$(RAYLIB_INCLUDE_PATH) -lraylib -Wno-reorder
 
 # Flags for desktop
 LFLAGS_DESKTOP = -L$(RAYLIB_DESKTOP_LIB_PATH) -lopengl32 -lgdi32 -lwinmm

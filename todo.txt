@@ -26,17 +26,17 @@ Main idea:
 
 Om man byter action sätt:
 
-1. Skapa enum Action kategori.
-2. Fyll i sträng-översätning
-3. Skapa struct gällande den actionen som innehåller allt som behövs för den.
-4. Skapa funktion som utifrån det som behövs bygger structen.
-5. Skapa funktion som helt utifrån den nyskapade structen gör det som Actionen ska göra.
-6. Lägg till case i do_action som kallar functionen
-7. Skapa Action och lägg till på godtagligt ställe (t.ex i collision check). 
+1. Lägg till i enum Action kategori.
+2. Fyll i sträng-översättning
+3. Skapa struct gällande den actionen som innehåller allt som behövs för den. + konstrukor
+4. Skapa funktion som helt utifrån den nyskapade structen gör det som Actionen ska göra.
+5. Lägg till case i do_action som kallar functionen
+6. Skapa Action och lägg till på godtagligt ställe (t.ex i collision check). 
 	Men spelar inte så stor roll vart man lägger till.
 	Bara det blir smidigt...
+7. (om det behövs, annars sker default) lägg till hur denna action ska ritas ut i menyn.
 
-3 + 4 + 5 Går att göra först, sen koppla ihop allt som behövs efter.
+3 + 4 Går att göra först, sen koppla ihop allt som behövs efter.
 
 För att göra detta så måste man även byta ut action_list till std::vector<action*>, då kan 4. bara kalla new, 
 	sen tar clear_action_list hand om delete.
