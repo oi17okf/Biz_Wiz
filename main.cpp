@@ -339,8 +339,40 @@ struct screen_3D {
     Color c;
     int focused;
     Vector2 coords;
+    float inset = 0.1;
+
+    std::vector<Vector3> points;
+    std::vector<Vector3> walls;
+    std::vector<Vector3> scale;
 
     WindowState type;
+
+    screen_3D(Vector3 pos, float w, float h, float r, WindowState t) : 
+        loc(pos), width(w), height(h), rot(r), c(WHITE), focused(0), coords({ 0, 0 }), type(t) {
+
+        float x = loc.x;
+        float y = loc.y;
+        float z = loc.z;
+
+        points.push_back((Vector3) {x - width / 2 + inset, y - height / 2 + inset, z });
+        points.push_back((Vector3) {x + width / 2 - inset, y - height / 2 + inset, z });
+        points.push_back((Vector3) {x + width / 2 - inset, y + height / 2 - inset, z });
+        points.push_back((Vector3) {x - width / 2 + inset, y + height / 2 - inset, z });
+
+        walls.push_back((Vector3) {x - width / 2 + inset / 2, y, z});
+        walls.push_back((Vector3) {x + width / 2 - inset / 2, y, z});
+        walls.push_back((Vector3) {x, y - height / 2 + inset / 2, z});
+        walls.push_back((Vector3) {x, y + height / 2 - inset / 2, z});
+        walls.push_back((Vector3) {x, y, z -inset / 2});
+
+        scale.push_back((Vector3) {0.1, 1, 0.1});
+        scale.push_back((Vector3) {0.1, 1, 0.1});
+        scale.push_back((Vector3) {1, 0.1, 0.1});
+        scale.push_back((Vector3) {1, 0.1, 0.1});
+        scale.push_back((Vector3) {0.8, 0.8, 0.05});
+    }
+
+    
 };
 
 
@@ -492,7 +524,8 @@ struct cubic_map {
 enum CollisionType {
 
     NO_COLLISION,
-    SCREEN,
+    SCREEN_INSIDE,
+    SCREEN_OUTSIDE,
     DISPLAY,
     BUTTON,
     OTHER,
@@ -759,15 +792,7 @@ void remove_display(action_remove_display* a) {
 
 void create_screen(world &w, Vector3 pos, float width, float height, float rot, WindowState type) {
 
-        screen_3D s;
-        s.loc = pos;
-        s.width = width;
-        s.height = height;
-        s.rot = rot;
-        s.c = WHITE;
-        s.focused = 0;
-        s.coords = { 0, 0 };
-        s.type = type;
+        screen_3D s(pos, width, height, rot, type);
 
         auto search = w.render_textures.find(type);
         if (search == w.render_textures.end()) {
@@ -1063,30 +1088,49 @@ void parse_xes(XMLElement* root, xes_data &data) {
     data.events_per_trace = (float)data.events / (float)data.traces.size();
 }
 
-void DrawScreen(screen_3D screen, Texture2D texture) {
+void DrawScreen(screen_3D s, Texture2D texture) {
     
-    float x = screen.loc.x;
-    float y = screen.loc.y;
-    float z = screen.loc.z;
+    float x = s.loc.x;
+    float y = s.loc.y;
+    float z = s.loc.z;
 
+    /*
+    Vector3 p1 = { -s.width / 2 + s.inset, -s.height / 2 + s.inset, 0 };
+    Vector3 p2 = {  s.width / 2 - s.inset, -s.height / 2 + s.inset, 0 };
+    Vector3 p3 = {  s.width / 2 - s.inset,  s.height / 2 - s.inset, 0 };
+    Vector3 p4 = { -s.width / 2 + s.inset,  s.height / 2 - s.inset, 0 };
+
+    Vector3 c1 = { -s.width / 2 + s.inset / 2, 0, 0};
+    Vector3 c2 = {  s.width / 2 - s.inset / 2, 0, 0 };
+    Vector3 c3 = { 0, -s.height / 2 + s.inset / 2, 0 };
+    Vector3 c4 = { 0,  s.height / 2 - s.inset / 2, 0 };
+    Vector3 wall = { 0, 0, -s.inset / 2 };
+
+    */
     rlSetTexture(texture.id);
 
     rlPushMatrix();
     rlTranslatef(x,y,z);
-    rlRotatef(screen.rot, 0, 1, 0);
+    rlRotatef(s.rot, 0, 1, 0);
     //rlScalef(screen.width, 1, screen.height);
     rlTranslatef(-x,-y,-z);
 
     rlBegin(RL_QUADS);
-    rlColor4ub(screen.c.r, screen.c.g, screen.c.b, screen.c.a);
+    rlColor4ub(s.c.r, s.c.g, s.c.b, s.c.a);
 
     rlNormal3f(0.0f, 0.0f, 1.0f);      
-    rlTexCoord2f(0.0f, 0.0f); rlVertex3f(x - screen.width/2, y - screen.height/2, z );  
-    rlTexCoord2f(1.0f, 0.0f); rlVertex3f(x + screen.width/2, y - screen.height/2, z );  
-    rlTexCoord2f(1.0f, 1.0f); rlVertex3f(x + screen.width/2, y + screen.height/2, z );  
-    rlTexCoord2f(0.0f, 1.0f); rlVertex3f(x - screen.width/2, y + screen.height/2, z ); 
+    rlTexCoord2f(0.0f, 0.0f); rlVertex3f(s.points[0].x, s.points[0].y, s.points[0].z);  
+    rlTexCoord2f(1.0f, 0.0f); rlVertex3f(s.points[1].x, s.points[1].y, s.points[1].z);  
+    rlTexCoord2f(1.0f, 1.0f); rlVertex3f(s.points[2].x, s.points[2].y, s.points[2].z);  
+    rlTexCoord2f(0.0f, 1.0f); rlVertex3f(s.points[3].x, s.points[3].y, s.points[3].z); 
 
     rlEnd();
+
+    DrawCubeV(s.walls[0], s.scale[0], LIGHTGRAY);
+    DrawCubeV(s.walls[1], s.scale[1], LIGHTGRAY);
+    DrawCubeV(s.walls[2], s.scale[2], LIGHTGRAY);
+    DrawCubeV(s.walls[3], s.scale[3], LIGHTGRAY);
+    DrawCubeV(s.walls[4], s.scale[4], GRAY);
     rlPopMatrix();
 
     rlSetTexture(0);
@@ -2480,7 +2524,11 @@ void update_action_list_3D(std::vector<action*> &al, Collision_Results &res, wor
     switch (res.type) {
 
         case NO_COLLISION:     { break; }
-        case SCREEN:           {
+        case SCREEN_INSIDE:           {
+            add_action(REMOVE_SCREEN, al, (action*) new action_remove_screen(w, res.index));
+            break; 
+        }
+        case SCREEN_OUTSIDE:           {
             add_action(REMOVE_SCREEN, al, (action*) new action_remove_screen(w, res.index));
             break; 
         }
@@ -2661,12 +2709,12 @@ void logic_graph(mouse &m, graph_data &g, xes_data &d) {
     }
 }
 
-RayCollision CheckScreenCollision(Ray ray, screen_3D &s) {
+RayCollision CheckScreenCollisionInside(Ray ray, screen_3D &s) {
 
-    Vector3 p1 = { -s.width / 2, -s.height / 2, 0 };
-    Vector3 p2 = { -s.width / 2,  s.height / 2, 0 };
-    Vector3 p3 = {  s.width / 2, -s.height / 2, 0 };
-    Vector3 p4 = {  s.width / 2,  s.height / 2, 0 };
+    Vector3 p1 = { -s.width / 2 + s.inset / 2, -s.height / 2 + s.inset / 2, 0 };
+    Vector3 p2 = { -s.width / 2 + s.inset / 2,  s.height / 2 - s.inset / 2, 0 };
+    Vector3 p3 = {  s.width / 2 - s.inset / 2, -s.height / 2 + s.inset / 2, 0 };
+    Vector3 p4 = {  s.width / 2 - s.inset / 2,  s.height / 2 - s.inset / 2, 0 };
 
     Matrix rotationMatrix = MatrixRotateY(DEG2RAD * s.rot);
 
@@ -2692,8 +2740,8 @@ Vector2 CalcScreenHitLoc(screen_3D &s, RayCollision hit) {
     Matrix rotationMatrix = MatrixRotateY(DEG2RAD * -s.rot);
     local_hit = Vector3Transform(local_hit, rotationMatrix);
 
-    float x_perc = GetPercent(local_hit.x, -s.width / 2, s.width / 2);
-    float y_perc = GetPercent(local_hit.y, s.height / 2, -s.height / 2);
+    float x_perc = GetPercent(local_hit.x, -s.width / 2 + s.inset / 2, s.width / 2 - s.inset / 2);
+    float y_perc = GetPercent(local_hit.y, s.height / 2 + s.inset / 2, -s.height / 2 + s.inset / 2);
 
     log("x_per", x_perc);
     log("y_per", y_perc);
@@ -2702,15 +2750,6 @@ Vector2 CalcScreenHitLoc(screen_3D &s, RayCollision hit) {
 
     return coords;
 }
-
-
-
-
-
-
-
-
-
 
 
 //assumes cube_size 1,1,1
@@ -2764,12 +2803,44 @@ void CheckCollidingMapSingle(Ray r, cubic_map &c, Collision_Results &res) {
 
 }
 
-BoundingBox get_bb(Vector3 pos, float size) {
+BoundingBox get_bb(Vector3 pos, Vector3 size) {
 
     BoundingBox b;
-    b.min = { pos.x - size, pos.y - size, pos.z - size };
-    b.max = { pos.x + size, pos.y + size, pos.z + size };
+    b.min = { pos.x - size.x / 2, pos.y - size.y / 2, pos.z - size.z / 2 };
+    b.max = { pos.x + size.x / 2, pos.y + size.y / 2, pos.z + size.z / 2 };
     return b;
+}
+
+BoundingBox get_bb(Vector3 pos, float size) {
+    return get_bb(pos, (Vector3) {size, size, size});
+}
+
+
+//todo - add rotation support
+RayCollision CheckScreenCollisionOutside(Ray ray, screen_3D &s) {
+
+    float lowest = 9999999;
+    int index = -1;
+    for (int i = 0; i < s.walls.size(); i++) {
+
+        BoundingBox b = get_bb(s.walls[i], s.scale[i]);
+        RayCollision hit = GetRayCollisionBox(ray, b);  
+
+        if (hit.hit && hit.distance < 0.1 && hit.distance < lowest) {
+            index = i;
+            lowest = hit.distance;
+        }
+        
+    } 
+
+    RayCollision r;
+    r.hit = 0;
+    if (index != -1) {
+        r.hit = 1;
+        r.distance = lowest;
+    } 
+    return r;
+
 }
 
 Collision_Results CheckMouseCollision(world &w, Ray ray) {
@@ -2783,15 +2854,36 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
             
             screen_3D &s = w.screens[i];
 
-            RayCollision hit = CheckScreenCollision(ray, s);
+            RayCollision hit = CheckScreenCollisionInside(ray, s);
+            RayCollision hit_out = CheckScreenCollisionOutside(ray, s);
 
-            if (hit.hit && hit.distance < 0.1) {
-                log("screen hit!");
-                r.type = SCREEN;
+            if (hit.hit && hit.distance < 0.1 && hit_out.hit) {
+                if (hit.distance < hit_out.distance) {
+                    log("screen hit inside!");
+                    r.type = SCREEN_INSIDE;
+                    r.index = i;
+                    r.end_point = hit.point;
+                    r.distance = hit.distance;
+                    r.index_point = CalcScreenHitLoc(s, hit);
+                    return r;
+                } else {
+                    r.type = SCREEN_OUTSIDE;
+                    r.index = 1;
+                    r.distance = hit.distance;
+                    return r;
+                }
+            } else if (hit.hit && hit.distance < 0.1) {
+                log("screen hit inside!");
+                r.type = SCREEN_INSIDE;
                 r.index = i;
                 r.end_point = hit.point;
                 r.distance = hit.distance;
                 r.index_point = CalcScreenHitLoc(s, hit);
+                return r;
+            } else if (hit_out.hit) {
+                r.type = SCREEN_OUTSIDE;
+                r.index = 1;
+                r.distance = hit.distance;
                 return r;
             }
         }
@@ -2834,7 +2926,7 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
 void DrawCursor(Ray ray, Collision_Results res) {
 
     float size = 0.1f;
-    if (res.type == SCREEN) { size = 0.01f; }
+    if (res.type == SCREEN_INSIDE) { size = 0.01f; }
 
     DrawCube(res.end_point, size, size, size, GREEN);
     DrawCubeWires(res.end_point, size, size, size, RED);
@@ -3047,6 +3139,7 @@ int main() {
     window main_window = { {0, 0}, {800, 450} };
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(main_window.end.x, main_window.end.y, "Biz Wiz");
 
     SetTargetFPS(60);  
@@ -3079,7 +3172,7 @@ int main() {
     world.camera.position = (Vector3){ 2.0f, 0.5f, 2.0f };
     world.camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
     world.camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
-    world.camera.fovy = 90.0f;
+    world.camera.fovy = 65.0f;
     world.camera.projection = CAMERA_PERSPECTIVE;
     rlSetClipPlanes(0.1f, 50000.0f); // increase far plane dist
 
@@ -3095,6 +3188,12 @@ int main() {
     Ray ray;
 
     Collision_Results col_res = { NO_COLLISION };
+
+    Mesh cubeMesh = GenMeshCube(0.5f, 0.5f, 0.5f);
+    Model cubeModel = LoadModelFromMesh(cubeMesh);
+
+    //Shader shader = LoadShader("resources/shaders/glsl330/base_lighting.vs", "resources/shaders/glsl330/lighting.fs");
+    //cubeModel.materials[0].shader = shader;
 
     while (!WindowShouldClose()) {
 
@@ -3152,7 +3251,7 @@ int main() {
             }
 
             //remove later
-            if (col_res.type == SCREEN) { menu.active = 0; }
+            if (col_res.type == SCREEN_INSIDE) { menu.active = 0; }
 
         } else {
 
@@ -3187,7 +3286,7 @@ int main() {
             mouse mouse_2D = m;
             mouse_2D.active = 0;
 
-            if (col_res.type == SCREEN) { //if ray hits a specific screen, transfer mouse coords to it.
+            if (col_res.type == SCREEN_INSIDE) { //if ray hits a specific screen, transfer mouse coords to it.
                 //log("SCREEEEEEEEEEEEEEEEEEEEEN");
                 WindowState win_type = world.screens[col_res.index].type;
                 if (win_type == it->first) {
@@ -3240,6 +3339,7 @@ int main() {
         DrawWorld(world);
         DrawCursor(ray, col_res);
         DrawSphere((Vector3){0, 1, 0}, 0.1, PINK);
+        DrawModel(cubeModel, Vector3{ 4.0f, 0.5f, 4.0f }, 1.0f, WHITE);
         EndMode3D();
 
 
