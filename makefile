@@ -10,10 +10,10 @@ RAYLIB_INCLUDE_PATH     = C:\Users\Oscar\Desktop\raylib\src
 CFLAGS = -Wall -std=c++11 -I$(RAYLIB_INCLUDE_PATH) -lraylib -Wno-reorder
 
 # Flags for desktop
-LFLAGS_DESKTOP = -L$(RAYLIB_DESKTOP_LIB_PATH) -lopengl32 -lgdi32 -lwinmm
+LFLAGS_DESKTOP = -L$(RAYLIB_DESKTOP_LIB_PATH) -lopengl32 -lgdi32 -lwinmm -g
 
 # Flags for web
-LFLAGS_WEB = -L$(RAYLIB_WEB_LIB_PATH) -s USE_GLFW=3 -s FULL_ES2=1 -s ASYNCIFY -s ALLOW_MEMORY_GROWTH=1 -DPLATFORM_WEB 
+LFLAGS_WEB = -L$(RAYLIB_WEB_LIB_PATH) -s USE_GLFW=3 -s FULL_ES2=1 -s ASYNCIFY -s ALLOW_MEMORY_GROWTH=1 -DPLATFORM_WEB -g4
 
 # Files
 SRC = main.cpp tinyxml2.cpp
@@ -22,7 +22,7 @@ OUT_DESKTOP = desktop
 OUT_WEB = index.html
 BASE_HTML = base.html
 UNUSED = --shell-file $(BASE_HTML)
-IO = --preload-file example2.csv --preload-file RequestForPayment.xes_
+IO = --preload-file example2.csv --preload-file RequestForPayment.xes_ --preload-file map.txt --preload-file cubicmap.png --preload-file cubicmap_atlas1.png 
 
 
 # Targets

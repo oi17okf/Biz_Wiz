@@ -26,6 +26,24 @@ std::string global_msg = "Welcome to Biz_Wiz";
 
 std::vector<std::string> global_log;
 
+std::vector<Vector3> debug_pos;
+
+void debug(Vector3 p) {
+
+    debug_pos.push_back(p);
+}
+
+void render_debug() {
+
+    for (Vector3 p : debug_pos) {
+
+        DrawSphere(p, 0.3, BLUE);
+    }
+
+    debug_pos.clear();
+}
+
+
 void log(std::string s) {
     std::cout << "LOG: " << s << std::endl;
 
@@ -347,6 +365,7 @@ struct screen_3D {
 
     WindowState type;
 
+    // todo make constructor deal w rotation.
     screen_3D(Vector3 pos, float w, float h, float r, WindowState t) : 
         loc(pos), width(w), height(h), rot(r), c(WHITE), focused(0), coords({ 0, 0 }), type(t) {
 
@@ -751,7 +770,10 @@ void add_action(Action type, std::vector<action*> &l, action* a) {
 void create_display(world &w, Vector3 pos, float rot, DisplayType type) {
 
     display_3D display;
-    display.loc = pos;
+    display.index = 0;
+    display.loc.x = std::round(pos.x);
+    display.loc.y = 0.5;
+    display.loc.z = std::round(pos.z);
     display.rot = rot;
     display.type = type;
 
@@ -792,6 +814,10 @@ void remove_display(action_remove_display* a) {
 
 void create_screen(world &w, Vector3 pos, float width, float height, float rot, WindowState type) {
 
+
+        pos.x = std::round(pos.x);
+        pos.z = std::round(pos.z);
+        pos.y = 0.5;
         screen_3D s(pos, width, height, rot, type);
 
         auto search = w.render_textures.find(type);
@@ -799,10 +825,6 @@ void create_screen(world &w, Vector3 pos, float width, float height, float rot, 
             RenderTexture2D t = LoadRenderTexture(512, 512);
             w.render_textures.insert(w.render_textures.begin(), {type, t} );
         } 
-
-        s.loc.y = 0.5;
-        s.loc.x = std::round(s.loc.x);
-        s.loc.z = std::round(s.loc.z);
 
         w.screens.insert(w.screens.begin(), s);
 }
@@ -2709,26 +2731,10 @@ void logic_graph(mouse &m, graph_data &g, xes_data &d) {
     }
 }
 
+//rotation should be handled in screen constructor!
 RayCollision CheckScreenCollisionInside(Ray ray, screen_3D &s) {
 
-    Vector3 p1 = { -s.width / 2 + s.inset / 2, -s.height / 2 + s.inset / 2, 0 };
-    Vector3 p2 = { -s.width / 2 + s.inset / 2,  s.height / 2 - s.inset / 2, 0 };
-    Vector3 p3 = {  s.width / 2 - s.inset / 2, -s.height / 2 + s.inset / 2, 0 };
-    Vector3 p4 = {  s.width / 2 - s.inset / 2,  s.height / 2 - s.inset / 2, 0 };
-
-    Matrix rotationMatrix = MatrixRotateY(DEG2RAD * s.rot);
-
-    p1 = Vector3Transform(p1, rotationMatrix);
-    p2 = Vector3Transform(p2, rotationMatrix);
-    p3 = Vector3Transform(p3, rotationMatrix);
-    p4 = Vector3Transform(p4, rotationMatrix);
-
-    p1 = Vector3Add(p1, s.loc);
-    p2 = Vector3Add(p2, s.loc);
-    p3 = Vector3Add(p3, s.loc);
-    p4 = Vector3Add(p4, s.loc);
-
-    RayCollision hit = GetRayCollisionQuad(ray, p1, p2, p3, p4);
+    RayCollision hit = GetRayCollisionQuad(ray, s.points[0], s.points[1], s.points[2], s.points[3]);
 
     return hit;
 
@@ -2740,8 +2746,9 @@ Vector2 CalcScreenHitLoc(screen_3D &s, RayCollision hit) {
     Matrix rotationMatrix = MatrixRotateY(DEG2RAD * -s.rot);
     local_hit = Vector3Transform(local_hit, rotationMatrix);
 
-    float x_perc = GetPercent(local_hit.x, -s.width / 2 + s.inset / 2, s.width / 2 - s.inset / 2);
-    float y_perc = GetPercent(local_hit.y, s.height / 2 + s.inset / 2, -s.height / 2 + s.inset / 2);
+    // todo - make it 3D vectors, to deal w rotation.
+    float x_perc = GetPercent(local_hit.x, s.loc.x - s.points[1].x, s.loc.x - s.points[0].x);
+    float y_perc = GetPercent(local_hit.y, s.loc.y - s.points[0].y, s.loc.y - s.points[2].y);
 
     log("x_per", x_perc);
     log("y_per", y_perc);
@@ -2791,15 +2798,18 @@ void CheckCollidingMapSingle(Ray r, cubic_map &c, Collision_Results &res) {
     if (is_outside_map(res.end_point, c)) { return; }
 
     Vector3 normed_point = SubVector3(res.end_point, c.loc);
-    res.index_point.x = normed_point.x;
-    res.index_point.y = normed_point.z;
+    res.index_point.x = std::round(normed_point.x);
+    res.index_point.y = std::round(normed_point.z);
 
     if (normed_point.y < 0) { res.type = CUBICMAP_FLOOR;   return;}
-    if (normed_point.y > 1) { res.type = CUBICMAP_CEILING; return;}
+    //if (normed_point.y > 1) { res.type = CUBICMAP_CEILING; return;}
 
-    int hit = c.cubes[(int)normed_point.z][(int)normed_point.x];
+    int hit = c.cubes[std::round(normed_point.z)][std::round(normed_point.x)];
 
-    if (hit) { res.type = CUBICMAP_DEFAULT; return; }
+
+    if (hit && normed_point.y < 1) { res.type = CUBICMAP_DEFAULT; return; }
+
+    
 
 }
 
@@ -2868,7 +2878,7 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
                     return r;
                 } else {
                     r.type = SCREEN_OUTSIDE;
-                    r.index = 1;
+                    r.index = i;
                     r.distance = hit.distance;
                     return r;
                 }
@@ -2882,7 +2892,7 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
                 return r;
             } else if (hit_out.hit) {
                 r.type = SCREEN_OUTSIDE;
-                r.index = 1;
+                r.index = i;
                 r.distance = hit.distance;
                 return r;
             }
@@ -2943,9 +2953,9 @@ void CameraCollision(Camera &curr_c, Camera old_c, cubic_map map) {
 
     Vector3 normed_point = SubVector3(curr_c.position, map.loc);
 
-    int collision = map.cubes[(int)normed_point.z][(int)normed_point.x];
+    int collision = map.cubes[std::round(normed_point.z)][std::round(normed_point.x)];
 
-    if (collision) { curr_c = old_c; } // only resets cam to prev tick.
+    if (collision && curr_c.position.y < 1) { curr_c = old_c; } // only resets cam to prev tick.
 
 }
 
@@ -3139,7 +3149,7 @@ int main() {
     window main_window = { {0, 0}, {800, 450} };
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    SetConfigFlags(FLAG_MSAA_4X_HINT);
+    //SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(main_window.end.x, main_window.end.y, "Biz Wiz");
 
     SetTargetFPS(60);  
@@ -3183,7 +3193,7 @@ int main() {
 
     std::string text3D = "hello...";
 
-    Shader alphaDiscard = LoadShader(NULL, "resources/shaders/glsl330/alpha_discard.fs");
+   // Shader alphaDiscard = LoadShader(NULL, "resources/shaders/glsl330/alpha_discard.fs");
 
     Ray ray;
 
@@ -3194,6 +3204,8 @@ int main() {
 
     //Shader shader = LoadShader("resources/shaders/glsl330/base_lighting.vs", "resources/shaders/glsl330/lighting.fs");
     //cubeModel.materials[0].shader = shader;
+
+    Vector2 old_mos_pos_2D = { 0, 0 };
 
     while (!WindowShouldClose()) {
 
@@ -3292,6 +3304,8 @@ int main() {
                 if (win_type == it->first) {
                     mouse_2D.active = 1;
                     mouse_2D.pos = col_res.index_point;
+                    mouse_2D.delta = SubVector2(mouse_2D.pos, old_mos_pos_2D); 
+                    old_mos_pos_2D = mouse_2D.pos;
                 }
             }
 
@@ -3339,7 +3353,8 @@ int main() {
         DrawWorld(world);
         DrawCursor(ray, col_res);
         DrawSphere((Vector3){0, 1, 0}, 0.1, PINK);
-        DrawModel(cubeModel, Vector3{ 4.0f, 0.5f, 4.0f }, 1.0f, WHITE);
+        //DrawModel(cubeModel, Vector3{ 4.0f, 0.5f, 4.0f }, 1.0f, WHITE);
+        render_debug();
         EndMode3D();
 
 
@@ -3359,8 +3374,6 @@ int main() {
         //render_active_trace_3D_cube({100, 0, 100}, log_data.traces[0]);
         //render_all_traces(log_data.traces);
 
-
-        
 
         //draw_3D_text(camera);
 

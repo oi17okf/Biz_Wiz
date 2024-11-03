@@ -39,7 +39,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Oscar\AppData\Local\Temp\tmpigkzlj27.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmpps6uvl0g.js
 
   if (!Module['expectedDataFileDownloads']) {
     Module['expectedDataFileDownloads'] = 0;
@@ -215,25 +215,25 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
     }
 
     }
-    loadPackage({"files": [{"filename": "/RequestForPayment.xes_", "start": 0, "end": 15185594}, {"filename": "/example2.csv", "start": 15185594, "end": 15186252}], "remote_package_size": 15186252});
+    loadPackage({"files": [{"filename": "/RequestForPayment.xes_", "start": 0, "end": 15185594}, {"filename": "/cubicmap.png", "start": 15185594, "end": 15185790}, {"filename": "/cubicmap_atlas1.png", "start": 15185790, "end": 15199487}, {"filename": "/example2.csv", "start": 15199487, "end": 15200145}, {"filename": "/map.txt", "start": 15200145, "end": 15200244}], "remote_package_size": 15200244});
 
   })();
 
-// end include: C:\Users\Oscar\AppData\Local\Temp\tmpigkzlj27.js
-// include: C:\Users\Oscar\AppData\Local\Temp\tmpvdsmis2v.js
+// end include: C:\Users\Oscar\AppData\Local\Temp\tmpps6uvl0g.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmpmxaxh6au.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['$ww'] || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\Oscar\AppData\Local\Temp\tmpvdsmis2v.js
-// include: C:\Users\Oscar\AppData\Local\Temp\tmp43k12758.js
+  // end include: C:\Users\Oscar\AppData\Local\Temp\tmpmxaxh6au.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmph8u7x17p.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\Oscar\AppData\Local\Temp\tmp43k12758.js
+  // end include: C:\Users\Oscar\AppData\Local\Temp\tmph8u7x17p.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -1103,40 +1103,40 @@ function dbg(...args) {
 // === Body ===
 
 var ASM_CONSTS = {
-  105020: () => { if (document.fullscreenElement) return 1; },  
- 105066: () => { return document.getElementById('canvas').width; },  
- 105118: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 105186: () => { document.exitFullscreen(); },  
- 105213: () => { setTimeout(function() { Module.requestFullscreen(false, false); }, 100); },  
- 105286: () => { if (document.fullscreenElement) return 1; },  
- 105332: () => { return document.getElementById('canvas').width; },  
- 105384: () => { return screen.width; },  
- 105409: () => { document.exitFullscreen(); },  
- 105436: () => { setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { canvas.style.width="unset"; }, 100); }, 100); },  
- 105569: () => { if (document.fullscreenElement) return 1; },  
- 105615: () => { return document.getElementById('canvas').width; },  
- 105667: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 105735: () => { if (document.fullscreenElement) return 1; },  
- 105781: () => { return document.getElementById('canvas').width; },  
- 105833: () => { return screen.width; },  
- 105858: () => { if (document.fullscreenElement) return 1; },  
- 105904: () => { return document.getElementById('canvas').width; },  
- 105956: () => { return screen.width; },  
- 105981: () => { document.exitFullscreen(); },  
- 106008: () => { if (document.fullscreenElement) return 1; },  
- 106054: () => { return document.getElementById('canvas').width; },  
- 106106: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 106174: () => { document.exitFullscreen(); },  
- 106201: () => { return screen.width; },  
- 106226: () => { return screen.height; },  
- 106252: () => { return window.screenX; },  
- 106279: () => { return window.screenY; },  
- 106306: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 106359: ($0) => { document.getElementById("canvas").style.cursor = UTF8ToString($0); },  
- 106430: () => { document.getElementById('canvas').style.cursor = 'none'; },  
- 106487: ($0) => { document.getElementById('canvas').style.cursor = UTF8ToString($0); },  
- 106558: () => { if (document.fullscreenElement) return 1; },  
- 106604: () => { if (document.pointerLockElement) return 1; }
+  110912: () => { if (document.fullscreenElement) return 1; },  
+ 110958: () => { return document.getElementById('canvas').width; },  
+ 111010: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 111078: () => { document.exitFullscreen(); },  
+ 111105: () => { setTimeout(function() { Module.requestFullscreen(false, false); }, 100); },  
+ 111178: () => { if (document.fullscreenElement) return 1; },  
+ 111224: () => { return document.getElementById('canvas').width; },  
+ 111276: () => { return screen.width; },  
+ 111301: () => { document.exitFullscreen(); },  
+ 111328: () => { setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { canvas.style.width="unset"; }, 100); }, 100); },  
+ 111461: () => { if (document.fullscreenElement) return 1; },  
+ 111507: () => { return document.getElementById('canvas').width; },  
+ 111559: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 111627: () => { if (document.fullscreenElement) return 1; },  
+ 111673: () => { return document.getElementById('canvas').width; },  
+ 111725: () => { return screen.width; },  
+ 111750: () => { if (document.fullscreenElement) return 1; },  
+ 111796: () => { return document.getElementById('canvas').width; },  
+ 111848: () => { return screen.width; },  
+ 111873: () => { document.exitFullscreen(); },  
+ 111900: () => { if (document.fullscreenElement) return 1; },  
+ 111946: () => { return document.getElementById('canvas').width; },  
+ 111998: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 112066: () => { document.exitFullscreen(); },  
+ 112093: () => { return screen.width; },  
+ 112118: () => { return screen.height; },  
+ 112144: () => { return window.screenX; },  
+ 112171: () => { return window.screenY; },  
+ 112198: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 112251: ($0) => { document.getElementById("canvas").style.cursor = UTF8ToString($0); },  
+ 112322: () => { document.getElementById('canvas').style.cursor = 'none'; },  
+ 112379: ($0) => { document.getElementById('canvas').style.cursor = UTF8ToString($0); },  
+ 112450: () => { if (document.fullscreenElement) return 1; },  
+ 112496: () => { if (document.pointerLockElement) return 1; }
 };
 function GetWindowInnerWidth() { return window.innerWidth; }
 function GetWindowInnerHeight() { return window.innerHeight; }
@@ -4576,6 +4576,33 @@ function GetWindowInnerHeight() { return window.innerHeight; }
       },
   };
   
+  var requestPointerLock = (target) => {
+      if (target.requestPointerLock) {
+        target.requestPointerLock();
+      } else {
+        // document.body is known to accept pointer lock, so use that to differentiate if the user passed a bad element,
+        // or if the whole browser just doesn't support the feature.
+        if (document.body.requestPointerLock
+          ) {
+          return -3;
+        }
+        return -1;
+      }
+      return 0;
+    };
+  var _emscripten_exit_pointerlock = () => {
+      // Make sure no queued up calls will fire after this.
+      JSEvents.removeDeferredCalls(requestPointerLock);
+  
+      if (document.exitPointerLock) {
+        document.exitPointerLock();
+      } else {
+        return -1;
+      }
+      return 0;
+    };
+
+  
   var maybeCStringToJsString = (cString) => {
       // "cString > 2" checks if the input is a number, and isn't of the special
       // values we accept here, EMSCRIPTEN_EVENT_TARGET_* (which map to 0, 1, 2).
@@ -6977,6 +7004,29 @@ function GetWindowInnerHeight() { return window.innerHeight; }
   var _glViewport = (x0, x1, x2, x3) => GLctx.viewport(x0, x1, x2, x3);
   var _emscripten_glViewport = _glViewport;
 
+  
+  
+  var _emscripten_request_pointerlock = (target, deferUntilInEventHandler) => {
+      target = findEventTarget(target);
+      if (!target) return -4;
+      if (!target.requestPointerLock
+        ) {
+        return -1;
+      }
+  
+      // Queue this function call if we're not currently in an event handler and
+      // the user saw it appropriate to do so.
+      if (!JSEvents.canPerformEventHandlerRequests()) {
+        if (deferUntilInEventHandler) {
+          JSEvents.deferCall(requestPointerLock, 2 /* priority below fullscreen */, [target]);
+          return 1;
+        }
+        return -2;
+      }
+  
+      return requestPointerLock(target);
+    };
+
   var getHeapMax = () =>
       // Stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate
       // full 4GB Wasm memories, the size will wrap back to 0 bytes in Wasm side
@@ -8484,6 +8534,26 @@ function GetWindowInnerHeight() { return window.innerHeight; }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   
   
   
@@ -9674,6 +9744,8 @@ function GetWindowInnerHeight() { return window.innerHeight; }
       return prevcbfun;
     };
 
+  var _glfwSetCursorPos = (winid, x, y) => GLFW.setCursorPos(winid, x, y);
+
   var _glfwSetCursorPosCallback = (winid, cbfun) => GLFW.setCursorPosCallback(winid, cbfun);
 
   var _glfwSetDropCallback = (winid, cbfun) => GLFW.setDropCallback(winid, cbfun);
@@ -10129,6 +10201,8 @@ var wasmImports = {
   /** @export */
   emscripten_date_now: _emscripten_date_now,
   /** @export */
+  emscripten_exit_pointerlock: _emscripten_exit_pointerlock,
+  /** @export */
   emscripten_get_element_css_size: _emscripten_get_element_css_size,
   /** @export */
   emscripten_get_gamepad_status: _emscripten_get_gamepad_status,
@@ -10459,6 +10533,8 @@ var wasmImports = {
   /** @export */
   emscripten_glViewport: _emscripten_glViewport,
   /** @export */
+  emscripten_request_pointerlock: _emscripten_request_pointerlock,
+  /** @export */
   emscripten_resize_heap: _emscripten_resize_heap,
   /** @export */
   emscripten_sample_gamepad_data: _emscripten_sample_gamepad_data,
@@ -10513,6 +10589,10 @@ var wasmImports = {
   /** @export */
   glBindBuffer: _glBindBuffer,
   /** @export */
+  glBindFramebuffer: _glBindFramebuffer,
+  /** @export */
+  glBindRenderbuffer: _glBindRenderbuffer,
+  /** @export */
   glBindTexture: _glBindTexture,
   /** @export */
   glBlendFunc: _glBlendFunc,
@@ -10520,6 +10600,8 @@ var wasmImports = {
   glBufferData: _glBufferData,
   /** @export */
   glBufferSubData: _glBufferSubData,
+  /** @export */
+  glCheckFramebufferStatus: _glCheckFramebufferStatus,
   /** @export */
   glClear: _glClear,
   /** @export */
@@ -10561,9 +10643,17 @@ var wasmImports = {
   /** @export */
   glEnableVertexAttribArray: _glEnableVertexAttribArray,
   /** @export */
+  glFramebufferRenderbuffer: _glFramebufferRenderbuffer,
+  /** @export */
+  glFramebufferTexture2D: _glFramebufferTexture2D,
+  /** @export */
   glFrontFace: _glFrontFace,
   /** @export */
   glGenBuffers: _glGenBuffers,
+  /** @export */
+  glGenFramebuffers: _glGenFramebuffers,
+  /** @export */
+  glGenRenderbuffers: _glGenRenderbuffers,
   /** @export */
   glGenTextures: _glGenTextures,
   /** @export */
@@ -10589,19 +10679,45 @@ var wasmImports = {
   /** @export */
   glReadPixels: _glReadPixels,
   /** @export */
+  glRenderbufferStorage: _glRenderbufferStorage,
+  /** @export */
   glShaderSource: _glShaderSource,
   /** @export */
   glTexImage2D: _glTexImage2D,
   /** @export */
   glTexParameteri: _glTexParameteri,
   /** @export */
+  glUniform1fv: _glUniform1fv,
+  /** @export */
   glUniform1i: _glUniform1i,
   /** @export */
+  glUniform1iv: _glUniform1iv,
+  /** @export */
+  glUniform2fv: _glUniform2fv,
+  /** @export */
+  glUniform2iv: _glUniform2iv,
+  /** @export */
+  glUniform3fv: _glUniform3fv,
+  /** @export */
+  glUniform3iv: _glUniform3iv,
+  /** @export */
   glUniform4f: _glUniform4f,
+  /** @export */
+  glUniform4fv: _glUniform4fv,
+  /** @export */
+  glUniform4iv: _glUniform4iv,
   /** @export */
   glUniformMatrix4fv: _glUniformMatrix4fv,
   /** @export */
   glUseProgram: _glUseProgram,
+  /** @export */
+  glVertexAttrib1fv: _glVertexAttrib1fv,
+  /** @export */
+  glVertexAttrib2fv: _glVertexAttrib2fv,
+  /** @export */
+  glVertexAttrib3fv: _glVertexAttrib3fv,
+  /** @export */
+  glVertexAttrib4fv: _glVertexAttrib4fv,
   /** @export */
   glVertexAttribPointer: _glVertexAttribPointer,
   /** @export */
@@ -10626,6 +10742,8 @@ var wasmImports = {
   glfwSetCharCallback: _glfwSetCharCallback,
   /** @export */
   glfwSetCursorEnterCallback: _glfwSetCursorEnterCallback,
+  /** @export */
+  glfwSetCursorPos: _glfwSetCursorPos,
   /** @export */
   glfwSetCursorPosCallback: _glfwSetCursorPosCallback,
   /** @export */
@@ -10797,7 +10915,6 @@ var missingLibrarySymbols = [
   'softFullscreenResizeWebGLRenderTarget',
   'doRequestFullscreen',
   'registerPointerlockErrorEventCallback',
-  'requestPointerLock',
   'fillVisibilityChangeEventData',
   'registerVisibilityChangeEventCallback',
   'registerBeforeUnloadEventCallback',
@@ -10927,6 +11044,7 @@ var unexportedSymbols = [
   'restoreOldWindowedStyle',
   'fillPointerlockChangeEventData',
   'registerPointerlockChangeEventCallback',
+  'requestPointerLock',
   'registerTouchEventCallback',
   'fillGamepadEventData',
   'registerGamepadEventCallback',
