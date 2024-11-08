@@ -88,6 +88,13 @@ Model load_generic_model(std::string model_path, std::string texture_path) {
 
 }
 
+struct text {
+
+    std::string msg;
+    Color c;
+};
+
+std::vector<text> trace_help;
 
 enum WindowState {
     WINDOW_NULL,
@@ -166,7 +173,8 @@ enum Action {
     CREATE_DISPLAY,
     REMOVE_DISPLAY,
     SAVE_STATE, 
-    LOAD_STATE  
+    LOAD_STATE,
+    FOCUS_TRACE  
 
 };
 
@@ -195,6 +203,7 @@ const std::map<Action, std::string> action_names = {
     { REMOVE_DISPLAY,    "Remove display" },
     { SAVE_STATE,        "Save state" },
     { LOAD_STATE,        "Load state" },
+    { FOCUS_TRACE,       "Focus trace" },
     
 };
 
@@ -292,6 +301,7 @@ struct trace {
 
 };
 std::vector<trace> traces;
+std::vector<std::string> names;
 
 struct xes_data {
 
@@ -336,12 +346,32 @@ struct window {
     Vector2 end;
 };
 
+
+struct event_sphere {
+
+    Color c;
+    std::string name;
+    int trace_id;
+    float pos;
+
+};
+
+
 struct display_3D {
 
     Vector3 loc;
     int index;
     Vector3 coords;
     float rot;
+
+    int calced = 0;
+    
+    int max_hours = 750;
+    std::vector<int> amounts;
+    int dirty = 1;
+    int selected_trace = 0;
+
+    std::vector<std::vector<event_sphere>> events;
 
     DisplayType type;
 
@@ -546,6 +576,7 @@ enum CollisionType {
     SCREEN_INSIDE,
     SCREEN_OUTSIDE,
     DISPLAY,
+    DISPLAY_MULTI,
     BUTTON,
     OTHER,
     CUBICMAP_DEFAULT,
@@ -757,6 +788,15 @@ struct action_load_state {
     action_load_state(world &world, menu &m, int c) : type(LOAD_STATE), w(world), m(m), confirm(c) { 
              if (confirm == 0) { name = "NO"; }
         else if (confirm == 1) { name = "YES"; }}
+};
+
+struct action_focus_trace {
+    Action type;
+    int index;
+    display_3D &display;
+
+    action_focus_trace(display_3D &d, int i) : type(FOCUS_TRACE), display(d), index(i) {}
+
 };
 
 void add_action(Action type, std::vector<action*> &l, action* a) {
@@ -2429,6 +2469,12 @@ void save_state(action_save_state* a) {
 
 }
 
+void focus_trace(action_focus_trace* a) {
+
+    a->display.selected_trace = a->index;
+    a->display.dirty = 1;
+}
+
 void do_action(action* a) {
 
     switch (a->type) {
@@ -2453,11 +2499,14 @@ void do_action(action* a) {
         case CREATE_SCREEN:     { create_screen(    (action_create_screen*)     a); break; }
         case REMOVE_DISPLAY:    { remove_display(   (action_remove_display*)    a); break; } 
         case CREATE_DISPLAY:    { create_display(   (action_create_display*)    a); break; }
+        case FOCUS_TRACE:       { focus_trace(      (action_focus_trace*)       a); break; }
 
     
     }
 
 }
+
+
 
 
 
@@ -2555,6 +2604,9 @@ void update_action_list_3D(std::vector<action*> &al, Collision_Results &res, wor
             break; 
         }
         case OTHER:            { break; }
+        case DISPLAY_MULTI: {
+            add_action(FOCUS_TRACE, al, (action*) new action_focus_trace(w.displays[res.index_point.x], res.index));
+        }
         case DISPLAY: {
             add_action(REMOVE_DISPLAY, al, (action*) new action_remove_display(w, res.index));
             break;
@@ -2683,7 +2735,6 @@ void logic_graph(mouse &m, graph_data &g, xes_data &d) {
                 log("hover conn");
             }
         }
-
         
 
         if (m.left_click && (g.hover_node_index != -1 || g.hover_conn_index != -1)) {
@@ -2897,18 +2948,61 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
                 return r;
             }
         }
-
+        /*
         for (int i = 0; (size_t)i < w.displays.size(); i++) {
             display_3D &d = w.displays[i];
-            BoundingBox b = get_bb(d.loc, 0.5);
+            BoundingBox b;
+
+            if (d.type == MULTIPLE_TRACE_TIME) {
+                b = get_bb(d.loc, 50);
+            } else {
+                b = get_bb(d.loc, 0.5);
+            }
+
             if (CheckCollisionBoxSphere(b, ray.position, 0.01)) {
-                r.type = DISPLAY;
-                r.index = i;
-                r.end_point = ray.position;
-                r.distance = Vector3Length(SubVector3(ray.position, start));
-                return r;
+
+                if (d.type == MULTIPLE_TRACE_TIME) {
+
+                    
+                    if (ray.position.z > d.loc.z - 0.01 && ray.position.z < d.loc.z + 0.01) {
+                        log("woot2");
+
+                        if (ray.position.y > d.loc.y && ray.position.y < d.loc.y + 0.02 * d.max_hours) {
+                            log("woot3");
+
+                            int index = (ray.position.y - d.loc.y) / 0.02;
+                            //int size = d.events[index].size();
+                            int size = 100;
+                            log("woot4");
+
+                            if (ray.position.x > d.loc.x + 0.01 * size && ray.position.x < d.loc.x - 0.01 * size) {
+                                log("woot5");
+                                int jindex = ((ray.position.x - d.loc.x) + 0.01 * size) / 0.02;
+                                
+                                r.type = DISPLAY_MULTI;
+                                //r.index = d.events[index][jindex].trace_id;
+                                r.index = 5;
+                                r.index_point.x = i;
+                                r.end_point = ray.position; 
+                                r.distance = Vector3Length(SubVector3(ray.position, start));
+                                log("woot6");
+                                return r;
+                            }
+                        }
+                    }
+                    
+
+                } else {
+
+                    r.type = DISPLAY;
+                    r.index = i;
+                    r.end_point = ray.position;
+                    r.distance = Vector3Length(SubVector3(ray.position, start));
+                    return r;
+                }
             }
         }
+        */
 
         for (int i = 0; (size_t)i < w.buttons.size(); i++) {
             button_3D &butt = w.buttons[i];
@@ -2922,9 +3016,13 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
             }
         }
 
+
         CheckCollidingMapSingle(ray, w.cubic_map, r);
 
-        if (r.type != NO_COLLISION) { return r; }
+        if (r.type != NO_COLLISION) { 
+            log("???");
+            return r; 
+        }
 
         ray.position = AddVector3(ray.position, ScaleVector3(ray.direction, 0.1)); 
     }
@@ -3098,11 +3196,110 @@ void DrawDisplay(display_3D &d) {
         }
 
 
-    } else if (d.type == MULTIPLE_TRACE_TIME && t.events.size()) {
+    } else if (d.type == MULTIPLE_TRACE_TIME && t.events.size()) { 
+        size = 0.01;
+
+        Color colorlist[20] = { WHITE, GREEN, RED, PURPLE, BLACK, BLUE, PINK, ORANGE, GRAY, YELLOW, 
+                                BROWN, MAROON, GOLD, BEIGE, DARKBROWN, SKYBLUE, DARKGRAY, VIOLET, MAGENTA, LIME };
+        
+        if (d.dirty) {
+            log("@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            trace_help.clear();
+            for (int k = 0; k < names.size(); k++) {
+
+                text ttt;
+                ttt.msg = names[k];
+                ttt.c = colorlist[k];
+                trace_help.push_back(ttt);
+            }
+            d.events.clear();
+            d.events.resize(d.max_hours);
+            d.dirty = 0;
+            d.amounts.resize(d.max_hours, 0);
+
+            int trace_count = traces.size();
+
+            for (int i = 0; i < 500; i++) {
+
+                trace t = traces[i];
+                time_t start_time = t.events[0].time;
+                for (int j = 0; j < t.events.size(); j++) {
+                    time_t diff = t.events[j].time - start_time;
+                    int hour = (int) std::ceil((float)diff / 3600.0f);
+                    event_sphere es;
+                    es.name = t.events[j].name;
+                    es.c = LIME;
+                    es.trace_id = i;
+                    for (int k = 0; k < names.size(); k++) {
+
+                        if (names[k] == es.name) {
+                            es.c = colorlist[k];
+                            break;
+                        }
+                    }
+                    if (hour < d.max_hours) {
+                        d.events[hour].push_back(es);
+                        d.amounts[hour]++;
+                    } else {
+                       d.amounts[d.max_hours - 1]++;
+                       d.events[d.max_hours - 1].push_back(es);
+                    }
+
+
+                }
+            }
+
+            for (int i = 0; i < d.events.size(); i++) {
+
+                int count = d.events[i].size();
+                float x_offset = count * -size;
+                for (int j = 0; j < count; j++) {
+                    d.events[i][j].pos = x_offset;
+                    x_offset += size * 2;
+                }
+            }
+        }
+
+        //draw
+
+        float x_offset = 0;
+        float y_offset = 0;
+        std::vector<Vector3> lines;
+
+        for (int i = 0; i < d.max_hours; i++) {
+
+
+            //int spheres = d.amounts[i];
+            int spheres = d.events[i].size();
+            x_offset = spheres * -size;
+            for (int j = 0; j < spheres; j++) {
+                event_sphere es = d.events[i][j];
+
+
+
+                Vector3 pos = { d.loc.x + x_offset, d.loc.y + y_offset, d.loc.z};
+                DrawSphere(pos, size, es.c);
+                if (es.trace_id == d.selected_trace) {
+                    lines.push_back(pos);
+                    DrawCubeWires(pos, size*2, size*2, size*2, RED);    
+                }
+                x_offset += size * 2;
+            }
+
+            x_offset = 0;
+
+            y_offset += size * 2;
+        }
+
+        for (int i = 0; i < lines.size() - 1; i++) {
+
+            DrawLine3D(lines[i], lines[i+1], RED);
+        }
+
 
         size = 0.5f;
 
-        DrawCube(d.loc, size, size, size, BLUE);
+        //DrawCube(d.loc, size, size, size, BLUE);
         
     } else {
 
@@ -3113,7 +3310,7 @@ void DrawDisplay(display_3D &d) {
     }
 }
 
-void DrawDisplays(std::vector<display_3D> displays) {
+void DrawDisplays(std::vector<display_3D> &displays) {
 
     for (display_3D &d : displays) {
         DrawDisplay(d);
@@ -3162,6 +3359,7 @@ int main() {
     xes_data log_data;
     parse_xes(root_log, log_data);
     traces = log_data.traces;
+    names = log_data.names;
 
     
     menu menu;
@@ -3201,6 +3399,9 @@ int main() {
 
     Mesh cubeMesh = GenMeshCube(0.5f, 0.5f, 0.5f);
     Model cubeModel = LoadModelFromMesh(cubeMesh);
+
+    //Mesh sphereMesh = GenMeshCube(0.5f, 0.5f, 0.5f);
+    //Model cubeModel = LoadModelFromMesh(cubeMesh);
 
     //Shader shader = LoadShader("resources/shaders/glsl330/base_lighting.vs", "resources/shaders/glsl330/lighting.fs");
     //cubeModel.materials[0].shader = shader;
@@ -3378,6 +3579,11 @@ int main() {
         //draw_3D_text(camera);
 
         // &&&&&&&&&&& INTERFACE &&&&&&&&&&&&&&
+
+        for (int i = 0; i < trace_help.size(); i++) {
+
+            DrawText(trace_help[i].msg.c_str(), 10, 100 + 10 * i, 8, trace_help[i].c);
+        }
 
         DrawText(global_msg.c_str(), 10, 10, 8, ORANGE);
         DrawText(action.c_str(), 10, 20, 8, ORANGE);
