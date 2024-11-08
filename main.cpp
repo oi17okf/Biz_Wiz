@@ -2855,6 +2855,12 @@ void CheckCollidingMapSingle(Ray r, cubic_map &c, Collision_Results &res) {
     if (normed_point.y < 0) { res.type = CUBICMAP_FLOOR;   return;}
     //if (normed_point.y > 1) { res.type = CUBICMAP_CEILING; return;}
 
+    if (res.index_point.y >= c.cubes.size() || res.index_point.y < 0 || res.index_point.x < 0 || res.index_point.x >= c.cubes[res.index_point.y].size()) {
+        return;
+    }
+
+
+
     int hit = c.cubes[std::round(normed_point.z)][std::round(normed_point.x)];
 
 
@@ -2910,7 +2916,7 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
     Vector3 start = ray.position;
 
     for (int j = 0; j < 500; j++) {
-
+     
         for (int i = 0; (size_t)i < w.screens.size(); i++) {
             
             screen_3D &s = w.screens[i];
@@ -2948,7 +2954,8 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
                 return r;
             }
         }
-        /*
+     
+        
         for (int i = 0; (size_t)i < w.displays.size(); i++) {
             display_3D &d = w.displays[i];
             BoundingBox b;
@@ -2971,17 +2978,17 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
                             log("woot3");
 
                             int index = (ray.position.y - d.loc.y) / 0.02;
-                            //int size = d.events[index].size();
-                            int size = 100;
+                            int size = d.events[index].size();
+                            //int size = 100;
                             log("woot4");
 
-                            if (ray.position.x > d.loc.x + 0.01 * size && ray.position.x < d.loc.x - 0.01 * size) {
+                            if (ray.position.x < d.loc.x + 0.01 * size && ray.position.x > d.loc.x - 0.01 * size) {
                                 log("woot5");
                                 int jindex = ((ray.position.x - d.loc.x) + 0.01 * size) / 0.02;
                                 
                                 r.type = DISPLAY_MULTI;
-                                //r.index = d.events[index][jindex].trace_id;
-                                r.index = 5;
+                                r.index = d.events[index][jindex].trace_id;
+                                //r.index = 5;
                                 r.index_point.x = i;
                                 r.end_point = ray.position; 
                                 r.distance = Vector3Length(SubVector3(ray.position, start));
@@ -3002,7 +3009,7 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
                 }
             }
         }
-        */
+        
 
         for (int i = 0; (size_t)i < w.buttons.size(); i++) {
             button_3D &butt = w.buttons[i];
@@ -3015,12 +3022,14 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
                 return r;
             }
         }
+    
 
 
         CheckCollidingMapSingle(ray, w.cubic_map, r);
 
+    
         if (r.type != NO_COLLISION) { 
-            log("???");
+
             return r; 
         }
 
@@ -3439,11 +3448,11 @@ int main() {
         } else if (menu.active && !m.active) { 
             log("bad state1");
         } else if (m.active) {
-            
+        
             ray = GetMouseRay(m.pos, world.camera);
-
+          
             col_res = CheckMouseCollision(world, ray);
-
+         
             update_action_list_3D(menu.action_list, col_res, world, menu, m);
 
             if (menu.action_list.size()) {
