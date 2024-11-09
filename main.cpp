@@ -2915,7 +2915,7 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
     Collision_Results r = { NO_COLLISION, -1, { 0, 0 }, { 0, 0, 0 }, 9999999.0f };
     Vector3 start = ray.position;
 
-    for (int j = 0; j < 500; j++) {
+    for (int j = 0; j < 5000; j++) {
      
         for (int i = 0; (size_t)i < w.screens.size(); i++) {
             
@@ -2972,27 +2972,27 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
 
                     
                     if (ray.position.z > d.loc.z - 0.01 && ray.position.z < d.loc.z + 0.01) {
-                        log("woot2");
+
 
                         if (ray.position.y > d.loc.y && ray.position.y < d.loc.y + 0.02 * d.max_hours) {
-                            log("woot3");
 
-                            int index = (ray.position.y - d.loc.y) / 0.02;
+
+                            int index = std::round((ray.position.y - d.loc.y) / 0.02);
                             int size = d.events[index].size();
-                            //int size = 100;
-                            log("woot4");
 
-                            if (ray.position.x < d.loc.x + 0.01 * size && ray.position.x > d.loc.x - 0.01 * size) {
-                                log("woot5");
-                                int jindex = ((ray.position.x - d.loc.x) + 0.01 * size) / 0.02;
+
+
+
+                            if (ray.position.x < d.loc.x + 0.01 * size - 0.01 && ray.position.x > d.loc.x - 0.01 * size - 0.01) {
+
+                                int jindex = std::round(((ray.position.x - d.loc.x) + 0.01 * size) / 0.02);
                                 
                                 r.type = DISPLAY_MULTI;
                                 r.index = d.events[index][jindex].trace_id;
-                                //r.index = 5;
                                 r.index_point.x = i;
                                 r.end_point = ray.position; 
                                 r.distance = Vector3Length(SubVector3(ray.position, start));
-                                log("woot6");
+
                                 return r;
                             }
                         }
@@ -3033,7 +3033,7 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
             return r; 
         }
 
-        ray.position = AddVector3(ray.position, ScaleVector3(ray.direction, 0.1)); 
+        ray.position = AddVector3(ray.position, ScaleVector3(ray.direction, 0.01)); 
     }
 
     return r;
@@ -3043,7 +3043,8 @@ Collision_Results CheckMouseCollision(world &w, Ray ray) {
 void DrawCursor(Ray ray, Collision_Results res) {
 
     float size = 0.1f;
-    if (res.type == SCREEN_INSIDE) { size = 0.01f; }
+    if (res.type == SCREEN_INSIDE || res.type == DISPLAY_MULTI) { size = 0.01f; }
+    if (res.type == NO_COLLISION) { return; }
 
     DrawCube(res.end_point, size, size, size, GREEN);
     DrawCubeWires(res.end_point, size, size, size, RED);
@@ -3344,6 +3345,40 @@ void DrawWorld(world& w) {
     DrawButtons(w.buttons);
 
 
+}
+
+
+
+
+void get_avg_event_time() {
+
+    int counts[];
+    int total_times[];
+    int avg_times[];
+
+    for each trace:
+        for each event:
+            convert event name to int
+            count[x]++;
+            total_times[x] += event.time;
+
+    for each event name:
+        avg_times[i] = total_times[i] / counts[i];
+
+
+}
+
+void count_transitions() {
+
+    node_avg_times
+    int transition_log_count[names.size()][names.size()] <- connection graph
+    float transition_log_avg_time[names.size()][names.size()] <- connection graph
+
+    for each trace:
+        for each event: (i and i + 1, skip last i)
+            convert event i and event i + 1 to int
+            update_log_count
+            update_log_avg_time
 }
 
 int main() {
