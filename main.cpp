@@ -236,7 +236,8 @@ enum DisplayType {
     SINGLE_TRACE_TIME,
     SINGLE_TRACE_X,
     MULTIPLE_TRACE_TIME,
-    MULTIPLE_TRACE_X
+    MULTIPLE_TRACE_X,
+    TIME_TEST_2
 
 };
 
@@ -247,6 +248,7 @@ const std::map<DisplayType, std::string> displaytype_names = {
     { SINGLE_TRACE_X,      "SINGLE_TRACE_X" }, 
     { MULTIPLE_TRACE_TIME, "MULTIPLE_TRACE_TIME" },
     { MULTIPLE_TRACE_X,    "MULTIPLE_TRACE_X" },
+    { TIME_TEST_2,         "TIME_TEST_2" },
 };
 
 std::string displaytype_to_string(DisplayType d) {
@@ -285,6 +287,7 @@ struct event {
     std::string role;
     time_t time;
     int valid;
+    int type;
 };
 
 struct event_conn {
@@ -357,6 +360,26 @@ struct event_sphere {
 };
 
 
+struct disp_conn {
+
+    int from;
+    int fromv;
+    int to;
+    int tov;
+    int count;
+};
+
+struct disp_node {
+
+    Vector3 pos;
+    Color col;
+    std::string name;
+
+    float total_time = 0;
+    int   time_count = 0;
+    float avg_time = 0;
+};
+
 struct display_3D {
 
     Vector3 loc;
@@ -370,6 +393,8 @@ struct display_3D {
     std::vector<int> amounts;
     int dirty = 1;
     int selected_trace = 0;
+    std::vector<disp_conn> conn_list;
+    std::vector<std::vector<disp_node>> nodes;
 
     std::vector<std::vector<event_sphere>> events;
 
@@ -1140,6 +1165,16 @@ void parse_xes(XMLElement* root, xes_data &data) {
             }
             first = 0;
 
+            e.type = -1;
+            for (int i = 0; i < (int)data.names.size(); i++) {
+                if (e.name == data.names[i]) {
+
+                    e.type = i;
+                    break;
+                }
+            }
+            if (e.type == -1) { log("error parsing log"); }
+
             t.events.push_back(e);
         }
 
@@ -1210,6 +1245,7 @@ void DrawScreens(std::vector<screen_3D> &screens, std::map<WindowState, RenderTe
 }
 
 //Raylib example
+/*
 static void DrawTextCodepoint3D(Font font, int codepoint, Vector3 position, float fontSize, bool backface, Color tint, int debug)
 {
     // Character index position in sprite font
@@ -1275,8 +1311,10 @@ static void DrawTextCodepoint3D(Font font, int codepoint, Vector3 position, floa
         rlSetTexture(0);
     }
 }
+*/
 
 //Raylib example
+/*
 static void DrawText3D(Font font, std::string s, Vector3 position, float fontSize, float fontSpacing, float lineSpacing, bool backface, Color tint, int debug)
 {
     const char* text = s.c_str();
@@ -1319,6 +1357,7 @@ static void DrawText3D(Font font, std::string s, Vector3 position, float fontSiz
         i += codepointByteCount;   // Move text bytes counter to next codepoint
     }
 }
+*/
 
 float calculate_avg_age(rapidcsv::Document doc) {
     std::vector<int> ages = doc.GetColumn<int>("Age");
@@ -2367,6 +2406,8 @@ void load_state(world &w) {
             }
 
             case BUTTONMODE: {
+
+                /*
                 std::string start;
                 std::string end;
                 float x;
@@ -2383,6 +2424,7 @@ void load_state(world &w) {
                 Action a = string_to_action(type_string);
 
                 //add_button(buttons, a, pos);
+                */
                 break;
             }
 
@@ -2888,7 +2930,7 @@ RayCollision CheckScreenCollisionOutside(Ray ray, screen_3D &s) {
 
     float lowest = 9999999;
     int index = -1;
-    for (int i = 0; i < s.walls.size(); i++) {
+    for (int i = 0; i < (int)s.walls.size(); i++) {
 
         BoundingBox b = get_bb(s.walls[i], s.scale[i]);
         RayCollision hit = GetRayCollisionBox(ray, b);  
@@ -3282,6 +3324,7 @@ void DrawDisplay(display_3D &d) {
             //int spheres = d.amounts[i];
             int spheres = d.events[i].size();
             x_offset = spheres * -size;
+            float x_offset_start = x_offset;
             for (int j = 0; j < spheres; j++) {
                 event_sphere es = d.events[i][j];
 
@@ -3296,9 +3339,14 @@ void DrawDisplay(display_3D &d) {
                 x_offset += size * 2;
             }
 
+            Color line_col = YELLOW;
+            if (i % 24 == 0) { line_col = BLUE; }
+            DrawLine3D((Vector3) {d.loc.x + x_offset_start, d.loc.y + y_offset, d.loc.z},
+                       (Vector3) {d.loc.x + x_offset      , d.loc.y + y_offset, d.loc.z}, line_col);
             x_offset = 0;
 
             y_offset += size * 2;
+
         }
 
         for (int i = 0; i < lines.size() - 1; i++) {
@@ -3311,12 +3359,198 @@ void DrawDisplay(display_3D &d) {
 
         //DrawCube(d.loc, size, size, size, BLUE);
         
+    } else if (d.type == TIME_TEST_2 && t.events.size()) {
+
+        Color colorlist[20] = { WHITE, GREEN, RED, PURPLE, BLACK, BLUE, PINK, ORANGE, GRAY, YELLOW, 
+                                BROWN, MAROON, GOLD, BEIGE, DARKBROWN, SKYBLUE, DARKGRAY, VIOLET, MAGENTA, LIME };
+        
+        if (d.dirty) {
+
+            d.dirty = 0;
+            d.conn_list.clear();
+            d.nodes.clear();
+            int nodes_size = names.size();
+            d.nodes.resize(nodes_size);
+
+            for (int i = 0; i < nodes_size; i++) {
+
+                disp_node base_node;
+                base_node.name = names[i];
+                base_node.col = colorlist[i];
+                d.nodes[i].push_back(base_node);
+
+            }
+
+            for (int i = 0; i < traces.size(); i++) {
+                trace t = traces[i];
+                time_t start_time = t.events[0].time;
+                for (int j = 0; j < t.events.size(); j++) {
+                    event e = t.events[j];
+                    time_t diff = e.time - start_time;
+                    d.nodes[e.type][0].total_time += diff;
+                    d.nodes[e.type][0].time_count++;
+                }
+            }
+
+            for (int i = 0; i < d.nodes.size(); i++) {
+                if (d.nodes[i][0].time_count == 0) {
+                    d.nodes[i][0].avg_time = 0;
+                } else {
+                    d.nodes[i][0].avg_time = d.nodes[i][0].total_time / d.nodes[i][0].time_count;
+                }
+                log("time:",  d.nodes[i][0].avg_time);
+                log("time:",  d.nodes[i][0].time_count);
+                log("name:" + d.nodes[i][0].name);
+            }
+
+            int add_count = 0;
+            int new_count = 0;
+            for (int i = 0; i < traces.size(); i++) {
+
+                
+                trace t = traces[i];
+                int node_stages[d.nodes.size()] = {};
+
+                for (int j = 0; j < t.events.size() - 1; j++) {
+
+                    event e1 = t.events[j];
+                    event e2 = t.events[j + 1];
+                    event start_event = t.events[0];
+                    time_t diff = e2.time - start_event.time;
+
+                    int from = e1.type;
+                    int to   = e2.type;
+                    int fromv = node_stages[from];
+                    int tov   = node_stages[to];
+
+
+                    while (d.nodes[from][fromv].avg_time > d.nodes[to][tov].avg_time && tov < d.nodes[to].size() - 1) {
+                        tov++;
+                    } 
+
+                    if (d.nodes[from][fromv].avg_time <= d.nodes[to][tov].avg_time || diff < d.nodes[from][fromv].avg_time) {
+                        add_count++;
+
+                        for (disp_conn &conn : d.conn_list) {
+
+                            if (conn.from == from && conn.fromv == fromv && conn.to == to && conn.tov == tov) {
+                                conn.count++;
+                                break;
+                            }
+                        }
+
+                        if (tov != 0) {
+
+                            d.nodes[to][0].total_time -= diff;
+                            d.nodes[to][0].time_count--;
+                            if (d.nodes[to][0].time_count == 0) { 
+                                d.nodes[to][0].avg_time = 0;
+                            } else {
+                                d.nodes[to][0].avg_time = d.nodes[to][0].total_time / d.nodes[to][0].time_count;
+                            }
+
+                            d.nodes[to][tov].time_count++;
+                            d.nodes[to][tov].total_time += diff;
+                            d.nodes[to][tov].avg_time = d.nodes[to][tov].total_time / d.nodes[to][tov].time_count;
+                            if (d.nodes[to][tov].avg_time < 0.1) { log("error2"); }
+
+                        }
+
+                    } else {
+                        log("trace:", i);
+                        log("new created!");
+                        log("from_time:", d.nodes[from][fromv].avg_time);
+                        log("to_time:", d.nodes[to][tov].avg_time);
+                        new_count++;
+                        tov++;
+
+                        disp_conn conn;
+                        conn.from = from;
+                        conn.fromv = fromv;
+                        conn.to = to;
+                        conn.tov = tov;
+                        conn.count = 1;
+                        d.conn_list.push_back(conn);
+                        //make new
+
+
+                        d.nodes[to][0].total_time -= diff;
+                        d.nodes[to][0].time_count--;
+
+                        if (d.nodes[to][0].time_count == 0) { 
+                            d.nodes[to][0].avg_time = 0;
+                        } else {
+                            d.nodes[to][0].avg_time = d.nodes[to][0].total_time / d.nodes[to][0].time_count;
+                        }
+
+
+                        disp_node node;
+
+                        node.time_count = 1;
+                        node.total_time = diff;
+                        node.avg_time = diff;
+
+                        node.name = names[to];
+                        node.col = colorlist[to];
+
+                        d.nodes[to].push_back(node);
+
+                    }
+                    
+                    node_stages[to]   = tov;
+
+
+                }
+            }
+
+            log("add_count:", add_count);
+            log("new_count:", new_count);
+        }
+
+        std::srand(43); // Seed the random number generator
+
+        
+        for (std::vector<disp_node> &sublist : d.nodes) {
+            int count = 0;
+
+            for (disp_node &node : sublist) {
+                count++;
+
+                int rand_x = std::rand() % 10 - 5;
+                int rand_z = std::rand() % 10 - 5;
+
+                Vector3 pos = d.loc;
+                pos.y += node.avg_time / 3600 * 24 / 5000;
+                pos.x += rand_x;
+                pos.z += rand_z;
+                //log("name" + node.name);
+                //log("time:", node.avg_time);
+                //log("count", node.time_count);
+
+                DrawSphere(pos, 0.05, node.col);
+                node.pos = pos;
+            }
+            //log("count:", count);
+        }
+
+        log("conn_size", (int)d.conn_list.size());
+        for (disp_conn conn : d.conn_list) {
+
+            Vector3 from_pos = d.nodes[conn.from][conn.fromv].pos;
+            Vector3 to_pos   = d.nodes[conn.to][conn.tov].pos;
+            Color c = RED;
+
+            if (from_pos.y < to_pos.y) { c = GREEN; }
+
+            DrawLine3D(from_pos, to_pos, c);
+        }
+
+
     } else {
 
         size = 0.5f;
 
         DrawCube(d.loc, size, size, size, BLUE);
-
     }
 }
 
@@ -3348,38 +3582,6 @@ void DrawWorld(world& w) {
 }
 
 
-
-
-void get_avg_event_time() {
-
-    int counts[];
-    int total_times[];
-    int avg_times[];
-
-    for each trace:
-        for each event:
-            convert event name to int
-            count[x]++;
-            total_times[x] += event.time;
-
-    for each event name:
-        avg_times[i] = total_times[i] / counts[i];
-
-
-}
-
-void count_transitions() {
-
-    node_avg_times
-    int transition_log_count[names.size()][names.size()] <- connection graph
-    float transition_log_avg_time[names.size()][names.size()] <- connection graph
-
-    for each trace:
-        for each event: (i and i + 1, skip last i)
-            convert event i and event i + 1 to int
-            update_log_count
-            update_log_avg_time
-}
 
 int main() {
 
