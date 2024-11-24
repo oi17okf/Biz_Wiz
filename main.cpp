@@ -3099,7 +3099,7 @@ void DrawCursor(Ray ray, Collision_Results res) {
 
 void CameraCollision(Camera &curr_c, Camera old_c, cubic_map map) {
 
-    if (is_outside_map(curr_c.position, map)) { log("camera outside map!!!!"); return; }
+    if (is_outside_map(curr_c.position, map)) { return; }
 
     Vector3 normed_point = SubVector3(curr_c.position, map.loc);
 
@@ -3405,7 +3405,7 @@ void DrawDisplay(display_3D &d) {
 
             int add_count = 0;
             int new_count = 0;
-            for (int i = 0; i < traces.size(); i++) {
+            for (int i = 0; i < 10; i++) {
 
                 
                 trace t = traces[i];
@@ -3431,12 +3431,25 @@ void DrawDisplay(display_3D &d) {
                     if (d.nodes[from][fromv].avg_time <= d.nodes[to][tov].avg_time || diff < d.nodes[from][fromv].avg_time) {
                         add_count++;
 
+                        int ffound = 0;
                         for (disp_conn &conn : d.conn_list) {
 
                             if (conn.from == from && conn.fromv == fromv && conn.to == to && conn.tov == tov) {
+                                ffound = 1;
                                 conn.count++;
                                 break;
                             }
+                        }
+
+                        if (ffound == 0) { 
+
+                            disp_conn conn;
+                            conn.from = from;
+                            conn.fromv = fromv;
+                            conn.to = to;
+                            conn.tov = tov;
+                            conn.count = 1;
+                            d.conn_list.push_back(conn); 
                         }
 
                         if (tov != 0) {
@@ -3509,31 +3522,34 @@ void DrawDisplay(display_3D &d) {
 
         std::srand(43); // Seed the random number generator
 
-        
+        int ccount = 0;
         for (std::vector<disp_node> &sublist : d.nodes) {
             int count = 0;
 
             for (disp_node &node : sublist) {
                 count++;
 
-                int rand_x = std::rand() % 10 - 5;
-                int rand_z = std::rand() % 10 - 5;
+                int rand_x = ccount;
+
 
                 Vector3 pos = d.loc;
                 pos.y += node.avg_time / 3600 * 24 / 5000;
                 pos.x += rand_x;
-                pos.z += rand_z;
+
                 //log("name" + node.name);
                 //log("time:", node.avg_time);
                 //log("count", node.time_count);
 
-                DrawSphere(pos, 0.05, node.col);
+                float size = 0.2;
+                if (count == 1) { size = 0.05; }
+                DrawSphere(pos, size, node.col);
                 node.pos = pos;
             }
+            ccount++;
             //log("count:", count);
         }
 
-        log("conn_size", (int)d.conn_list.size());
+        //log("conn_size", (int)d.conn_list.size());
         for (disp_conn conn : d.conn_list) {
 
             Vector3 from_pos = d.nodes[conn.from][conn.fromv].pos;
