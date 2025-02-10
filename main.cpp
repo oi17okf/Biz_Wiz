@@ -237,7 +237,8 @@ enum DisplayType {
     SINGLE_TRACE_X,
     MULTIPLE_TRACE_TIME,
     MULTIPLE_TRACE_X,
-    TIME_TEST_2
+    TIME_TEST_2,
+    GOOD_ALGO
 
 };
 
@@ -249,6 +250,7 @@ const std::map<DisplayType, std::string> displaytype_names = {
     { MULTIPLE_TRACE_TIME, "MULTIPLE_TRACE_TIME" },
     { MULTIPLE_TRACE_X,    "MULTIPLE_TRACE_X" },
     { TIME_TEST_2,         "TIME_TEST_2" },
+    { GOOD_ALGO,           "GOOD_ALGO2" },
 };
 
 std::string displaytype_to_string(DisplayType d) {
@@ -3562,6 +3564,97 @@ void DrawDisplay(display_3D &d) {
         }
 
 
+    } else if (d.type == MULTIPLE_TRACE_TIME && t.events.size()) {
+
+        Color colorlist[20] = { WHITE, GREEN, RED, PURPLE, BLACK, BLUE, PINK, ORANGE, GRAY, YELLOW, 
+                                BROWN, MAROON, GOLD, BEIGE, DARKBROWN, SKYBLUE, DARKGRAY, VIOLET, MAGENTA, LIME };
+
+        struct UniqueTrace {
+            String Representation;
+            Int Count;
+            List Events;
+            List TimesOfEvents;
+        };
+
+        //Step 1
+
+        std::vector<UniqueTrace> UniqueTraces;
+
+        for (int i = 0; i < traces.size(); i++) {
+
+            trace t = traces[i];
+            std::string rep = "";
+
+            for (int j = 0; j < t.events.size(); j++) {
+
+                int type = t.events[j].type;
+                rep += std::string(type);
+            }
+
+            int old_found = 0;
+            for (int j = 0; j < UniqueTraces.size(); j++) {
+
+                if (UniqueTraces[j].Representation == rep) {
+                    old_found = 1;
+                    UniqueTraces[j].count++;
+                    // merge events here.
+
+                }
+
+            }
+
+            if (!old_found) {
+                UniqueTrace newUnique;
+                newUnique.Representatione = rep;
+                newUnique.count = 1;
+                //copy over events here. do we need a better structure for events?
+                UniqueTraces.push(newUnique);
+            }
+        }
+
+        //Step 2
+         
+        //Later add data to allow for tracing events
+        Node {
+            Int CreationID - For Debugging
+            EventType
+            Int EventCount
+            Float AverageTime
+            ListOfNextNodes
+            IsAttemptingMerge
+            Int ExtraEventCount
+            Float ExtraAverageTime
+
+        }
+
+        MasterTrace {
+
+            List of BaseNodes (1 should just be needed but oh well)
+            Total Node Count
+            List of Each event Type and their count
+            StackOfNodes ClosestTimeNodes
+            Node* NodeToMerge
+
+        }
+
+        MasterTrace master;
+
+
+        Sort ListOfUniqueTraces based on Count. To make radical merges less likely.
+        Generate a MasterTrace from ListOfUniqueTraces[0] as MT 
+        For ListOfUniqueTraces[1..] as T:
+            MergeMasterTrace(MT, T):
+
+
+
+        
+                    
+
+        
+
+
+
+
     } else {
 
         size = 0.5f;
@@ -3569,6 +3662,48 @@ void DrawDisplay(display_3D &d) {
         DrawCube(d.loc, size, size, size, BLUE);
     }
 }
+
+void MergeMasterTrace(MasterTrace& mt, UniqueTrace t) {
+
+    Node* prevNode = nullptr;
+    For Each Letter in T.Representation as L
+        Event <- ExtractNodeFrom(T, L)
+        prevNode = MergeLetter(mt, Event, prevNode)
+}
+
+Node* MergeLetter(MasterTrace mt, Event e, Node* prevNode) {
+
+    type = e.type;
+
+    MergedNode <- None
+    BreadthFirstSearch through MT.
+    Look for Each event with type.
+    Add To MT.ClosetTimeNodes.
+    Sort by Time.
+
+    int merged = 0;
+    While MT.ClosestsTimeNodes:
+        NodePtr <- MT.ClosestsTimeNodes.Pop
+        UpdateMergeableTimes(NodePtr, Event)
+        merged = CheckValidMerge
+        ClearMergeableTimes
+        If Merged:  
+            MergedNode <- NodePtr
+            break;
+
+    If Merged False:
+        MergedNode <- CreateNewNode
+
+    Return MergedNode
+}
+
+int CheckValidMerge(MasterTrace& mt) {
+
+    BreadthFirstSearch of MT.
+    Check that no Child node has lower time than parent. If so Abort.
+    When encountering node IsAttemptingToMerge use extra times.
+}
+        
 
 void DrawDisplays(std::vector<display_3D> &displays) {
 
