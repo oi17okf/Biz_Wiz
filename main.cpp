@@ -382,6 +382,53 @@ struct disp_node {
     float avg_time = 0;
 };
 
+struct UniqueTrace {
+
+    std::string rep;
+    int count;
+    std::vector<std::string> names;
+    std::vector<char> events;
+    std::vector<float> times;
+
+    bool operator<(const UniqueTrace &other) const {
+        return count > other.count;  // Ascending order
+    }
+};
+
+struct Node {
+
+    int creationID;
+    char event_type;
+    std::string name;
+    int event_count;
+    float average_time;
+    std::vector<Node*> next_nodes;
+    std::vector<Node*> prev_nodes;
+    Node* extra_node = nullptr;
+    int is_attempting_merge;
+    int extra_event_count;
+    float extra_average_time;
+
+    int deleted = 0;
+
+    float time_diff;
+
+    bool operator<(const Node &other) const {
+        return time_diff > other.time_diff;  
+    }
+
+};
+
+struct MasterTrace {
+
+    Node* base_node;
+    int total_node_count;
+    //List of Each event Type and their count
+    std::vector<Node*> closest_time_nodes;
+    Node* node_to_merge;
+
+};
+
 struct display_3D {
 
     Vector3 loc;
@@ -399,6 +446,12 @@ struct display_3D {
     std::vector<std::vector<disp_node>> nodes;
 
     std::vector<std::vector<event_sphere>> events;
+
+    MasterTrace mt;
+    std::vector<UniqueTrace> UniqueTraces;
+    int UniqueTracesCalced = 0;
+    int traces_used = 1;
+    int bla = 1;
 
     DisplayType type;
 
@@ -3204,59 +3257,31 @@ enum MainState {
     MENU
 };
 
-struct UniqueTrace {
 
-    std::string rep;
-    int count;
-    std::vector<char> events;
-    std::vector<float> times;
 
-    bool operator<(const UniqueTrace &other) const {
-        return count < other.count;  // Ascending order
-    }
-};
 
-struct Node {
 
-    int creationID;
-    char event_type;
-    int event_count;
-    float average_time;
-    std::vector<Node*> next_nodes;
-    int is_attempting_merge;
-    int extra_event_count;
-    float extra_average_time;
 
-    float time_diff;
-
-    bool operator<(const Node &other) const {
-        return time_diff < other.time_diff;  // Ascending order
-    }
-
-};
-
-struct MasterTrace {
-
-    Node* base_node;
-    int total_node_count;
-    //List of Each event Type and their count
-    std::vector<Node*> closest_time_nodes;
-    Node* node_to_merge;
-
-};
 
 float merge_time(int event_count1, float average_time1, int event_count2, float average_time2) {
 
-    float ratio = (float)event_count1 / (float)event_count1 + (float)event_count2;
+    float res = ((event_count1 * average_time1) + (event_count2 * average_time2)) / (event_count1 + event_count2);
 
-    float event1_contribution = ratio       * average_time1;
-    float event2_contribution = (1 - ratio) * average_time2;
+    if ((res > average_time1 && res > average_time2) || (res < average_time1 && res < average_time2)) {
 
-    float merged_time = event1_contribution + event2_contribution;
+        log ("WTF");
+        log("ec1: ", event_count1);
+        log("at1: ", average_time1);
+        log("ec2: ", event_count2);
+        log("at2: ", average_time2);
+        log("res: ", res);
+        exit(0);
+    }
 
-    return merged_time;
+    return res;
 
 }
+    
 
 //Checks to see if there's any issues with merging, if so exits and returns 0.
 //Makes no changes in the graph.
@@ -3292,9 +3317,12 @@ int CheckValidMerge(MasterTrace& mt) {
             if (kid_time < parent_time) {
 
                 if (kid->is_attempting_merge) {
-                    log("failed merge - kid is attempting merge - OK");
+                    //log("failed merge - kid is attempting merge - OK");
                 } else if (parent->is_attempting_merge) {
                     log("failed merge - parent is attempting merge - SHOULD NOT OCCUR");
+                    //log("kid time: ", kid_time);
+                    //log("parent time: ", parent_time);
+                    //exit(0);
                 } else {
                     log("failed merge - no merge attempt - SHOULD NOT OCCUR");
                 }
@@ -3306,6 +3334,26 @@ int CheckValidMerge(MasterTrace& mt) {
             nodes.insert(nodes.begin(), kid);
         }
 
+        if (parent->extra_node != nullptr) {
+            nodes.insert(nodes.begin(), parent->extra_node);
+
+            if (!parent->extra_node->is_attempting_merge) {
+                log("error - checkvalidmerge");
+                exit(0);
+            }
+
+            Node* kid = parent->extra_node;
+            float kid_time = kid->average_time;
+            kid_time = merge_time(kid->event_count, kid->average_time, 
+                                  kid->extra_event_count, kid->extra_average_time);
+
+            if (kid_time < parent->average_time) {
+                return 0;
+            }
+
+
+        }
+
     }
 
     //went through entire graph, all good!
@@ -3314,16 +3362,23 @@ int CheckValidMerge(MasterTrace& mt) {
 }
 
 //prevNode is used when creating a new node, since it needs to be tied in to the structure somehow
-Node* MergeLetter(MasterTrace &mt, char event_type, float event_time, int event_count, Node* prevNode) {
+Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float event_time, int event_count, Node* prevNode) {
 
     std::vector<Node*> nodes;
     nodes.insert(nodes.begin(), mt.base_node);
     Node* parent = nullptr;
 
+    mt.closest_time_nodes.clear();
+
+    int count = 0;
     while(!nodes.empty()) {
+        count++;
+        if (count > 100) { exit(0); }
+
 
         parent = nodes.back();
         nodes.pop_back();
+        //log(parent->name);
 
         //should time diff calc care about count? maybe
         if (parent->event_type == event_type) {
@@ -3347,9 +3402,19 @@ Node* MergeLetter(MasterTrace &mt, char event_type, float event_time, int event_
     //check order
     std::sort(mt.closest_time_nodes.begin(), mt.closest_time_nodes.end());
 
+
+    //log("closest nodes size: ", (int)mt.closest_time_nodes.size());
+    //for (int i = 0; i < mt.closest_time_nodes.size(); i++) {
+
+        //log("diff: ", mt.closest_time_nodes[i]->time_diff);
+
+    //}
+    count = 0;
     int merged = 0;
     Node* node_ptr = nullptr;
     while(!mt.closest_time_nodes.empty()) {
+        //log("loop?");
+        count++;
 
         node_ptr = mt.closest_time_nodes.back();
         mt.closest_time_nodes.pop_back();
@@ -3357,17 +3422,54 @@ Node* MergeLetter(MasterTrace &mt, char event_type, float event_time, int event_
         node_ptr->extra_event_count = event_count;
         node_ptr->extra_average_time  = event_time;
 
+        if (prevNode != nullptr) {
+            prevNode->extra_node = node_ptr;
+        }
+
         merged = CheckValidMerge(mt);
+
+         if (prevNode != nullptr) {
+            prevNode->extra_node = nullptr;
+        }
+
+        //log("hallo", count);
 
         if (merged) {  
             //combine times TODO
+            float prev_avg = node_ptr->average_time;
             node_ptr->average_time = merge_time(node_ptr->event_count, node_ptr->average_time,
                                                 node_ptr->extra_event_count, node_ptr->extra_average_time);
             node_ptr->event_count += node_ptr->extra_event_count;
             merged_node = node_ptr;
+
+
             node_ptr->is_attempting_merge = 0;
             node_ptr->extra_event_count   = 0;
             node_ptr->extra_average_time  = 0;
+            log("successfully merging node: " + name);
+
+            //add check so a node does not point to same node twice or more
+            if (prevNode != nullptr) {
+
+                int already_exists = 0;
+
+                for (int i = 0; i < prevNode->next_nodes.size(); i++) {
+
+                    if (prevNode->next_nodes[i]->name == name) {
+                        already_exists = 1;
+                    }
+                }
+
+                if (already_exists) {
+                    log("prev node exists and has this name already. doing nothing");
+                } else {
+                    prevNode->next_nodes.push_back(merged_node);
+                    log("MERGE - prev node existed. added " + name + " to " + prevNode->name + "'s next nodes");
+                }
+            } else {
+                log("no prev node existed when merging " + name);
+            }
+
             break;
         }
 
@@ -3378,16 +3480,29 @@ Node* MergeLetter(MasterTrace &mt, char event_type, float event_time, int event_
 
     //if no suitable node found, create new one.
     if (merged == 0) {
+        log("could not merge node " + name + ". creating new node");
+        //log("new node created");
         merged_node = new Node;
         merged_node->creationID = mt.total_node_count;
         mt.total_node_count++;
         merged_node->event_type = event_type;
+        merged_node->name = name;
         merged_node->event_count = event_count;
         merged_node->average_time = event_time;
         merged_node->is_attempting_merge = 0;
+
+        if (prevNode != nullptr) {
+            prevNode->next_nodes.push_back(merged_node);
+            log("NO MERGE - prev node existed. added " + name + " to " + prevNode->name + "'s next nodes");
+        } else {
+            log("BAD - new node could not be added anywhere no prev node was found. Probably an alternate start. node name: " + name);
+        }
+
     }
+    log("exit");
 
     return merged_node;
+
 }
 
 void MergeMasterTrace(MasterTrace& mt, UniqueTrace t) {
@@ -3396,10 +3511,125 @@ void MergeMasterTrace(MasterTrace& mt, UniqueTrace t) {
 
     for (int i = 0; i < t.events.size(); i++) {
 
-        prevNode = MergeLetter(mt, t.events[i], t.times[i], t.count, prevNode);
+        log("merging mastertrace with " + t.names[i]);
+        prevNode = MergeLetter(mt, t.events[i], t.names[i], t.times[i], t.count, prevNode);
 
     }
 }
+
+/* 
+int InnerInnerMergePass(Node* node, MasterTrace& mt) {
+
+    std::vector<Node*> nodes;
+    nodes.insert(nodes.begin(), mt.base_node);
+    Node* parent = nullptr;
+
+    std::string name = node->name;
+
+    while(!nodes.empty()) {
+
+        parent = nodes.back();
+        nodes.pop_back();
+        
+        if (parent->name == name && node->creationID != parent->creationID) {
+
+            //attempt merge
+            //create new node with node stats and parent, dont forget prev nodes.
+            //run validate merge
+            //if valid delete node and parent and return 1
+            //if not valid delete new node and continue
+        }
+        
+
+        for (int i = 0; i < parent->next_nodes.size(); i++) {
+
+            Node* kid = parent->next_nodes[i];
+
+            nodes.insert(nodes.begin(), kid);
+        }
+    }
+
+    return 0;
+
+}
+
+int InnerMergePass(MasterTrace& mt) {
+
+    std::vector<Node*> nodes;
+    nodes.insert(nodes.begin(), mt.base_node);
+    Node* parent = nullptr;
+
+    while(!nodes.empty()) {
+
+        parent = nodes.back();
+        nodes.pop_back();
+
+        int merge = InnerInnerMergePass(parent);
+
+        if (merge) { return 1; }
+
+        for (int i = 0; i < parent->next_nodes.size(); i++) {
+
+            Node* kid = parent->next_nodes[i];
+
+            
+
+            nodes.insert(nodes.begin(), kid);
+        }
+    }
+
+    return 0;
+
+}
+
+//Brute-forcin
+void ExtraMergePass(MasterTrace& mt) {
+
+    std::vector<Node*> nodes;
+    nodes.insert(nodes.begin(), mt.base_node);
+    Node* parent = nullptr;
+
+    while(!nodes.empty()) {
+
+        parent = nodes.back();
+        nodes.pop_back();
+
+        for (int i = 0; i < parent->next_nodes.size(); i++) {
+
+            Node* kid = parent->next_nodes[i];
+
+            parent->prev_nodes.clear();
+
+            nodes.insert(nodes.begin(), kid);
+        }
+    }
+
+    nodes.insert(nodes.begin(), mt.base_node);
+
+    while(!nodes.empty()) {
+
+        parent = nodes.back();
+        nodes.pop_back();
+
+        for (int i = 0; i < parent->next_nodes.size(); i++) {
+
+            Node* kid = parent->next_nodes[i];
+
+            kid->prev_nodes.insert(kid->prev_nodes.begin(), parent);
+
+            nodes.insert(nodes.begin(), kid);
+        }
+    }
+
+    while(InnerMergePass(mt)) {
+        
+        log("Nodes were merged. Attempting again...");
+
+    }
+
+}
+
+*/
 
 void DrawDisplay(display_3D &d) {
 
@@ -3562,6 +3792,7 @@ void DrawDisplay(display_3D &d) {
     //} else if (d.type == TIME_TEST_2 && t.events.size()) {
     } else if (0) {
 
+        /*
         Color colorlist[20] = { WHITE, GREEN, RED, PURPLE, BLACK, BLUE, PINK, ORANGE, GRAY, YELLOW, 
                                 BROWN, MAROON, GOLD, BEIGE, DARKBROWN, SKYBLUE, DARKGRAY, VIOLET, MAGENTA, LIME };
         
@@ -3762,6 +3993,8 @@ void DrawDisplay(display_3D &d) {
             DrawLine3D(from_pos, to_pos, c);
         }
 
+        */
+
 
     } else if (d.type == MULTIPLE_TRACE_TIME && t.events.size()) {
 
@@ -3770,125 +4003,177 @@ void DrawDisplay(display_3D &d) {
 
         //Step 1
 
-        log("cmon");
-        //
-        std::vector<UniqueTrace> UniqueTraces;
+        if (d.dirty) {
 
-        //each singular trace
-        for (int i = 0; i < traces.size(); i++) {
+            trace_help.clear();
+            for (int k = 0; k < names.size(); k++) {
 
-            trace t = traces[i];
-            std::string rep = "";
-
-            for (int j = 0; j < t.events.size(); j++) {
-
-                char type = t.events[j].type;
-                rep += type; //hopefully works
+                text ttt;
+                ttt.msg = names[k];
+                ttt.c = colorlist[k];
+                trace_help.push_back(ttt);
             }
 
-            //each unique trace, checking for match
-            int old_found = 0;
-            for (int j = 0; j < UniqueTraces.size(); j++) {
+     
 
-                if (UniqueTraces[j].rep == rep) {
+            if (d.UniqueTracesCalced == 0) {
 
-                    old_found = 1;
-                    time_t base_time = t.events[0].time;
+                //each singular trace
+                for (int i = 0; i < traces.size(); i++) {
 
-                    for (int k = 1; k < t.events.size(); k++) {
+                    trace t = traces[i];
+                    std::string rep = "";
+                    std::vector<std::string> names;
 
-                        UniqueTraces[j].times[k] = merge_time(1, t.events[k].time - base_time, 
-                                                              UniqueTraces[j].count, UniqueTraces[j].times[k]);
-                        
+                    for (int j = 0; j < t.events.size(); j++) {
+
+                        char type = t.events[j].type;
+                        rep += type; //hopefully works
+                        names.push_back(t.events[j].name);
+
                     }
 
-                    UniqueTraces[j].count++;
+                    //each unique trace, checking for match
+                    int old_found = 0;
+                    for (int j = 0; j < d.UniqueTraces.size(); j++) {
 
-                }
+                        if (d.UniqueTraces[j].rep == rep) {
 
-            }
+                            old_found = 1;
+                            time_t base_time = t.events[0].time;
 
-            if (!old_found) {
-                UniqueTrace newUnique;
-                newUnique.rep = rep;
-                newUnique.count = 1;
+                            for (int k = 1; k < t.events.size(); k++) {
 
-                time_t base_time = t.events[0].time;
+                                d.UniqueTraces[j].times[k] = merge_time(1, t.events[k].time - base_time, 
+                                                                      d.UniqueTraces[j].count, d.UniqueTraces[j].times[k]);
+                                
+                            }
 
-                for (int j = 0; j < t.events.size(); j++) {
+                            d.UniqueTraces[j].count++;
 
-                    newUnique.events.push_back(t.events[j].type);
-                    if (j == 0) {
-                        newUnique.times.push_back(0);
-                    } else {
-                        newUnique.times.push_back(t.events[j].time - base_time); 
+                        }
+
+                    }
+
+                    if (!old_found) {
+                        UniqueTrace newUnique;
+                        newUnique.rep = rep;
+                        newUnique.names = names;
+                        newUnique.count = 1;
+
+                        time_t base_time = t.events[0].time;
+
+                        for (int j = 0; j < t.events.size(); j++) {
+
+                            newUnique.events.push_back(t.events[j].type);
+                            if (j == 0) {
+                                newUnique.times.push_back(0);
+                            } else {
+                                newUnique.times.push_back(t.events[j].time - base_time); 
+                            }
+                        }
+
+                        d.UniqueTraces.push_back(newUnique);
                     }
                 }
 
-                UniqueTraces.push_back(newUnique);
-            }
-        }
-        log("pls");
 
-        //times are now relativ to base_time (event 0)
-        //Step 2
+            //times are now relativ to base_time (event 0)
+            //Step 2
+             
+            //Later add data to allow for tracing events
+            
+            
+
+                std::sort(d.UniqueTraces.begin(), d.UniqueTraces.end());
+
+            
+
+            
+
+            //exit(0);
+
+                UniqueTrace master_trace = d.UniqueTraces[0];
+
+                Node* last_node = nullptr;
+
          
-        //Later add data to allow for tracing events
-        
-        
+                for (int i = master_trace.events.size() - 1; i >= 0; i--) {
 
-        std::sort(UniqueTraces.begin(), UniqueTraces.end());
+                    Node* node = new Node;
+                    node->creationID = i;
+                    node->event_count = master_trace.count;
+                    node->name = master_trace.names[i];
+                    node->event_type = master_trace.events[i];
+                    node->average_time = master_trace.times[i];
 
-        MasterTrace master;
-        UniqueTrace master_trace = UniqueTraces[0];
+                    node->is_attempting_merge = 0;
+                    node->extra_event_count = 0;
+                    node->extra_average_time = 0;
+                    d.mt.total_node_count++;
 
-        Node* last_node = nullptr;
+            
+                    if (last_node != nullptr) {
+                        node->next_nodes.push_back(last_node);
+                    }
 
- 
-        for (int i = master_trace.events.size() - 1; i >= 0; i--) {
 
-            Node* node = new Node;
-            node->creationID = i;
-            node->event_count = master_trace.count;
-            node->event_type = master_trace.events[i];
-            node->average_time = master_trace.times[i];
+                    last_node = node;
 
-            node->is_attempting_merge = 0;
-            node->extra_event_count = 0;
-            node->extra_average_time = 0;
-            master.total_node_count++;
+                    if (i == 0) {
 
-    
-            if (last_node != nullptr) {
-                node->next_nodes.push_back(last_node);
+                        d.mt.base_node = node;
+                    }
+
+                }
+
+                d.UniqueTracesCalced = 1;
+                log("unique traces: ", (int)d.UniqueTraces.size());
+
+            }
+
+            for (int i = 0; i < d.traces_used && i < d.UniqueTraces.size(); i++) {
+
+                log(d.UniqueTraces[i].rep, d.UniqueTraces[i].count);
+
+                for (int j = 0; j < d.UniqueTraces[i].names.size(); j++) {
+
+                    log(d.UniqueTraces[i].names[j]);
+                    log("time:", d.UniqueTraces[i].times[j]);
+
+                }
+
             }
 
 
-            last_node = node;
+            for (int i = d.bla; i < d.UniqueTraces.size() && i < d.traces_used; i++) {
 
-            if (i == 0) {
-
-                master.base_node = node;
+                log("startin merge...");
+                if (d.UniqueTraces[i].rep != "L") {
+                    MergeMasterTrace(d.mt, d.UniqueTraces[i]);
+                }
+                d.bla++;
             }
 
+
+            //Extra merge pass
+
+            d.dirty = 0;
         }
 
 
-        for (int i = 1; i < UniqueTraces.size(); i++) {
-
-            MergeMasterTrace(master, UniqueTraces[i]);
-        }
-
-
-
+        //log("time2draw");
+        //exit(0);
         //DRAWING
 
         //TODO add seen in drawing, otherwise done
 
         std::vector<Node*> nodes;
-        nodes.insert(nodes.begin(), master.base_node);
+        nodes.insert(nodes.begin(), d.mt.base_node);
         Node* parent = nullptr;
 
+        int count = 0;
+        //float z = 0;
         while(!nodes.empty()) {
 
             parent = nodes.back(); 
@@ -3896,25 +4181,37 @@ void DrawDisplay(display_3D &d) {
 
             Vector3 parent_loc = d.loc;
             parent_loc.y += parent->average_time / 3600 * 24 / 5000;
-            parent_loc.x += 10 * (parent->event_type - 'A');
+            parent_loc.x += 0.2 * (parent->event_type - 'A');
+
             Color parent_col = colorlist[parent->event_type - 'A'];
 
+
             DrawSphere(parent_loc, 0.1, parent_col);
+            count++;
 
             for (int i = 0; i < parent->next_nodes.size(); i++) {
 
                 Node* kid = parent->next_nodes[i];
                 Vector3 kid_loc = d.loc;
                 kid_loc.y += kid->average_time / 3600 * 24 / 5000;
-                kid_loc.x += 10 * (kid->event_type - 'A');
-                Color kid_col = colorlist[kid->event_type - 'A'];
+                kid_loc.x += 0.2 * (kid->event_type - 'A');
 
-                DrawSphere(kid_loc, 0.1, kid_col);
-                DrawLine3D(parent_loc, kid_loc, RED);  
+
+
+                DrawLine3D(parent_loc, kid_loc, RED); 
+
+                float x = kid_loc.x * 0.8 + parent_loc.x * 0.2;
+                float y = kid_loc.y * 0.8 + parent_loc.y * 0.2;
+                Vector3 dir_loc = Vector3{x, y, d.loc.z};
+                DrawSphere(dir_loc, 0.01, GREEN);
+
                 nodes.insert(nodes.begin(), kid);
             }
 
+            //z += 0.2;
+
         }
+        //log("count: ", count);
         
     } else {
 
@@ -4137,6 +4434,19 @@ int main() {
                 case GRAPH:    logic_graph(mouse_2D, g, log_data);   break; 
                 case TRACE:    logic_trace(mouse_2D, td);    break; 
                 case WINDOW_NULL: log("error53"); break;
+            }
+        }
+
+        //Temp
+        if (IsKeyPressed(KEY_F1)) {
+            log("yo");
+
+            for (int i = 0; i < world.displays.size(); i++) {
+
+                world.displays[i].traces_used++;
+                world.displays[i].dirty = 1;
+
+
             }
         }
        

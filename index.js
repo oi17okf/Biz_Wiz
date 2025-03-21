@@ -39,7 +39,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Oscar\AppData\Local\Temp\tmpeuzfu7em.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmp85lekkuy.js
 
   if (!Module['expectedDataFileDownloads']) {
     Module['expectedDataFileDownloads'] = 0;
@@ -215,25 +215,25 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
     }
 
     }
-    loadPackage({"files": [{"filename": "/RequestForPayment.xes_", "start": 0, "end": 15185594}, {"filename": "/cubicmap.png", "start": 15185594, "end": 15185790}, {"filename": "/cubicmap_atlas1.png", "start": 15185790, "end": 15199487}, {"filename": "/example2.csv", "start": 15199487, "end": 15200145}, {"filename": "/map.txt", "start": 15200145, "end": 15200244}], "remote_package_size": 15200244});
+    loadPackage({"files": [{"filename": "/RequestForPayment.xes_", "start": 0, "end": 15185594}, {"filename": "/cubicmap.png", "start": 15185594, "end": 15185779}, {"filename": "/cubicmap_atlas1.png", "start": 15185779, "end": 15199476}, {"filename": "/example2.csv", "start": 15199476, "end": 15200134}, {"filename": "/map.txt", "start": 15200134, "end": 15200278}], "remote_package_size": 15200278});
 
   })();
 
-// end include: C:\Users\Oscar\AppData\Local\Temp\tmpeuzfu7em.js
-// include: C:\Users\Oscar\AppData\Local\Temp\tmp9y7a5cu5.js
+// end include: C:\Users\Oscar\AppData\Local\Temp\tmp85lekkuy.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmpu2i_jnct.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['$ww'] || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\Oscar\AppData\Local\Temp\tmp9y7a5cu5.js
-// include: C:\Users\Oscar\AppData\Local\Temp\tmpm0piqkgk.js
+  // end include: C:\Users\Oscar\AppData\Local\Temp\tmpu2i_jnct.js
+// include: C:\Users\Oscar\AppData\Local\Temp\tmpfmdsdgm2.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\Oscar\AppData\Local\Temp\tmpm0piqkgk.js
+  // end include: C:\Users\Oscar\AppData\Local\Temp\tmpfmdsdgm2.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -1103,40 +1103,40 @@ function dbg(...args) {
 // === Body ===
 
 var ASM_CONSTS = {
-  111024: () => { if (document.fullscreenElement) return 1; },  
- 111070: () => { return document.getElementById('canvas').width; },  
- 111122: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 111190: () => { document.exitFullscreen(); },  
- 111217: () => { setTimeout(function() { Module.requestFullscreen(false, false); }, 100); },  
- 111290: () => { if (document.fullscreenElement) return 1; },  
- 111336: () => { return document.getElementById('canvas').width; },  
- 111388: () => { return screen.width; },  
- 111413: () => { document.exitFullscreen(); },  
- 111440: () => { setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { canvas.style.width="unset"; }, 100); }, 100); },  
- 111573: () => { if (document.fullscreenElement) return 1; },  
- 111619: () => { return document.getElementById('canvas').width; },  
- 111671: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 111739: () => { if (document.fullscreenElement) return 1; },  
- 111785: () => { return document.getElementById('canvas').width; },  
- 111837: () => { return screen.width; },  
- 111862: () => { if (document.fullscreenElement) return 1; },  
- 111908: () => { return document.getElementById('canvas').width; },  
- 111960: () => { return screen.width; },  
- 111985: () => { document.exitFullscreen(); },  
- 112012: () => { if (document.fullscreenElement) return 1; },  
- 112058: () => { return document.getElementById('canvas').width; },  
- 112110: () => { return parseInt(document.getElementById('canvas').style.width); },  
- 112178: () => { document.exitFullscreen(); },  
- 112205: () => { return screen.width; },  
- 112230: () => { return screen.height; },  
- 112256: () => { return window.screenX; },  
- 112283: () => { return window.screenY; },  
- 112310: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 112363: ($0) => { document.getElementById("canvas").style.cursor = UTF8ToString($0); },  
- 112434: () => { document.getElementById('canvas').style.cursor = 'none'; },  
- 112491: ($0) => { document.getElementById('canvas').style.cursor = UTF8ToString($0); },  
- 112562: () => { if (document.fullscreenElement) return 1; },  
- 112608: () => { if (document.pointerLockElement) return 1; }
+  111504: () => { if (document.fullscreenElement) return 1; },  
+ 111550: () => { return document.getElementById('canvas').width; },  
+ 111602: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 111670: () => { document.exitFullscreen(); },  
+ 111697: () => { setTimeout(function() { Module.requestFullscreen(false, false); }, 100); },  
+ 111770: () => { if (document.fullscreenElement) return 1; },  
+ 111816: () => { return document.getElementById('canvas').width; },  
+ 111868: () => { return screen.width; },  
+ 111893: () => { document.exitFullscreen(); },  
+ 111920: () => { setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { canvas.style.width="unset"; }, 100); }, 100); },  
+ 112053: () => { if (document.fullscreenElement) return 1; },  
+ 112099: () => { return document.getElementById('canvas').width; },  
+ 112151: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 112219: () => { if (document.fullscreenElement) return 1; },  
+ 112265: () => { return document.getElementById('canvas').width; },  
+ 112317: () => { return screen.width; },  
+ 112342: () => { if (document.fullscreenElement) return 1; },  
+ 112388: () => { return document.getElementById('canvas').width; },  
+ 112440: () => { return screen.width; },  
+ 112465: () => { document.exitFullscreen(); },  
+ 112492: () => { if (document.fullscreenElement) return 1; },  
+ 112538: () => { return document.getElementById('canvas').width; },  
+ 112590: () => { return parseInt(document.getElementById('canvas').style.width); },  
+ 112658: () => { document.exitFullscreen(); },  
+ 112685: () => { return screen.width; },  
+ 112710: () => { return screen.height; },  
+ 112736: () => { return window.screenX; },  
+ 112763: () => { return window.screenY; },  
+ 112790: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 112843: ($0) => { document.getElementById("canvas").style.cursor = UTF8ToString($0); },  
+ 112914: () => { document.getElementById('canvas').style.cursor = 'none'; },  
+ 112971: ($0) => { document.getElementById('canvas').style.cursor = UTF8ToString($0); },  
+ 113042: () => { if (document.fullscreenElement) return 1; },  
+ 113088: () => { if (document.pointerLockElement) return 1; }
 };
 function GetWindowInnerWidth() { return window.innerWidth; }
 function GetWindowInnerHeight() { return window.innerHeight; }
