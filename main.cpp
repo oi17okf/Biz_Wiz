@@ -3484,6 +3484,10 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
         //log("new node created");
         merged_node = new Node;
         merged_node->creationID = mt.total_node_count;
+        if (merged_node->creationID > 100) {
+            log("WTF");
+            exit(0);
+        }   
         mt.total_node_count++;
         merged_node->event_type = event_type;
         merged_node->name = name;
@@ -3517,8 +3521,14 @@ void MergeMasterTrace(MasterTrace& mt, UniqueTrace t) {
     }
 }
 
-/* 
+void RemoveNode(Node* node, MasterTrace& mt) {
+
+
+
+}
+
 int InnerInnerMergePass(Node* node, MasterTrace& mt) {
+    log("InnerInnerMergePass");
 
     std::vector<Node*> nodes;
     nodes.insert(nodes.begin(), mt.base_node);
@@ -3533,11 +3543,84 @@ int InnerInnerMergePass(Node* node, MasterTrace& mt) {
         
         if (parent->name == name && node->creationID != parent->creationID) {
 
-            //attempt merge
-            //create new node with node stats and parent, dont forget prev nodes.
-            //run validate merge
-            //if valid delete node and parent and return 1
-            //if not valid delete new node and continue
+            Node* pot_node         = new Node;
+            pot_node->creationID   = mt.total_node_count;
+            pot_node->event_count  = parent->event_count + node->event_count;
+            pot_node->average_time = merge_time(parent->event_count, parent->average_time,
+                                                node->event_count, node->average_time);
+
+            pot_node->is_attempting_merge = 1;
+
+            for (int i = 0; i < node->prev_nodes.size(); i++) {
+                Node* kid = node->prev_nodes[i];
+                kid->extra_node = pot_node;
+
+            }
+            for (int i = 0; i < parent->prev_nodes.size(); i++) {
+                Node* kid = parent->prev_nodes[i];
+                kid->extra_node = pot_node;
+            }
+
+            pot_node->next_nodes.insert(pot_node->next_nodes.begin(), parent->next_nodes.begin(), parent->next_nodes.end());
+            pot_node->next_nodes.insert(pot_node->next_nodes.begin(), node->next_nodes.begin(), node->next_nodes.end());
+
+            log("CheckingValidMerge");
+            int valid = CheckValidMerge(mt);
+
+            if (valid) {
+                log("--- MERGING ---");
+                mt.total_node_count++; //not great, since 2 nodes are killed...
+
+                for (int i = 0; i < node->prev_nodes.size(); i++) {
+                    Node* kid = node->prev_nodes[i];
+                    kid->next_nodes.insert(kid->next_nodes.begin(), kid->extra_node);
+                    for (int j = 0; j < kid->next_nodes.size(); j++) {
+                        Node* kidnext = kid->next_nodes[j];
+                        if (kidnext->creationID == node->creationID) {
+                            log("deleted");
+                            kid->next_nodes.erase(kid->next_nodes.begin() + j);
+                            log("hi");
+                            break;
+                        }
+                    }
+                    kid->extra_node = nullptr;
+                }
+
+                delete node;
+
+                log("wtf");
+                for (int i = 0; i < parent->prev_nodes.size(); i++) {
+                    Node* kid = parent->prev_nodes[i];
+                    kid->next_nodes.insert(kid->next_nodes.begin(), kid->extra_node);
+                    for (int j = 0; j < kid->next_nodes.size(); j++) {
+                        Node* kidnext = kid->next_nodes[j];
+                        if (kidnext->creationID == parent->creationID) {
+                            kid->next_nodes.erase(kid->next_nodes.begin() + j);
+                            log("deleted");
+                        }
+                    }
+                    kid->extra_node = nullptr;
+                }
+
+                delete parent;
+
+                return 1;
+
+            } else {
+
+                delete pot_node;
+
+                for (int i = 0; i < node->prev_nodes.size(); i++) {
+                    Node* kid = node->prev_nodes[i];
+                    kid->extra_node = nullptr;
+
+                }
+                for (int i = 0; i < parent->prev_nodes.size(); i++) {
+                    Node* kid = parent->prev_nodes[i];
+                    kid->extra_node = nullptr;
+                }
+            }
+
         }
         
 
@@ -3555,6 +3638,7 @@ int InnerInnerMergePass(Node* node, MasterTrace& mt) {
 
 int InnerMergePass(MasterTrace& mt) {
 
+    log("InnerMergePass");
     std::vector<Node*> nodes;
     nodes.insert(nodes.begin(), mt.base_node);
     Node* parent = nullptr;
@@ -3564,17 +3648,14 @@ int InnerMergePass(MasterTrace& mt) {
         parent = nodes.back();
         nodes.pop_back();
 
-        int merge = InnerInnerMergePass(parent);
+        int merge = InnerInnerMergePass(parent, mt);
 
         if (merge) { return 1; }
 
         for (int i = 0; i < parent->next_nodes.size(); i++) {
 
-            Node* kid = parent->next_nodes[i];
+            nodes.insert(nodes.begin(), parent->next_nodes[i]);
 
-            
-
-            nodes.insert(nodes.begin(), kid);
         }
     }
 
@@ -3582,13 +3663,12 @@ int InnerMergePass(MasterTrace& mt) {
 
 }
 
-//Brute-forcin
-void ExtraMergePass(MasterTrace& mt) {
+void ClearPrevNodes(MasterTrace& mt) {
 
     std::vector<Node*> nodes;
-    nodes.insert(nodes.begin(), mt.base_node);
     Node* parent = nullptr;
-
+    nodes.insert(nodes.begin(), mt.base_node);
+    
     while(!nodes.empty()) {
 
         parent = nodes.back();
@@ -3603,7 +3683,12 @@ void ExtraMergePass(MasterTrace& mt) {
             nodes.insert(nodes.begin(), kid);
         }
     }
+}
 
+void SetPrevNodes(MasterTrace& mt) {
+
+    std::vector<Node*> nodes;
+    Node* parent = nullptr;
     nodes.insert(nodes.begin(), mt.base_node);
 
     while(!nodes.empty()) {
@@ -3620,16 +3705,94 @@ void ExtraMergePass(MasterTrace& mt) {
             nodes.insert(nodes.begin(), kid);
         }
     }
+}
 
-    while(InnerMergePass(mt)) {
-        
-        log("Nodes were merged. Attempting again...");
+//Brute-forcin
+void ExtraMergePass(MasterTrace& mt) {
 
+    ClearPrevNodes(mt);
+
+    SetPrevNodes(mt);
+
+    log("------------EXTRA-----------");
+    while(InnerMergePass(mt)) { 
+        log("Nodes were merged. Attempting again..."); 
+        ClearPrevNodes(mt);
+        SetPrevNodes(mt);
     }
 
 }
 
-*/
+
+std::string seconds_to_timedelta_string(float seconds) {
+    int total_seconds = static_cast<int>(round(seconds));
+
+    int days = total_seconds / 86400;
+    total_seconds -= days * 86400;
+    int hours = total_seconds / 3600;
+    total_seconds -= hours * 3600;
+    int minutes = total_seconds / 60;
+    total_seconds -= minutes * 60;
+    int secs = total_seconds;
+
+    // Format: "X days HH:MM:SS"
+    std::ostringstream ss;
+    ss << days << " days ";
+    ss << std::setfill('0') << std::setw(2) << hours << ":"
+       << std::setw(2) << minutes << ":"
+       << std::setw(2) << secs;
+
+    return ss.str();
+}
+
+void export_data(MasterTrace& mt) {
+
+    std::ofstream connections("connections.txt");
+    std::ofstream timestamps("timestamps.txt");
+
+    if (!connections || !timestamps) {
+        std::cerr << "Error opening file for writing." << std::endl;
+        exit(1);
+    }
+
+    std::vector<Node*> nodes;
+    Node* parent = nullptr;
+    nodes.insert(nodes.begin(), mt.base_node);
+
+    while(!nodes.empty()) {
+
+        parent = nodes.back();
+        nodes.pop_back();
+
+        for (int i = 0; i < parent->next_nodes.size(); i++) {
+
+            Node* kid = parent->next_nodes[i];
+
+            //Output data
+            std::string parent_s = parent->name + std::to_string(parent->creationID);
+            std::string kid_s    = kid->name + std::to_string(kid->creationID);
+            std::string count    = std::to_string(parent->event_count);
+
+            //out to log1 
+            connections << parent_s << "," << kid_s << "," << count << std::endl;
+
+            //out to log2
+
+
+            std::string timestamp = seconds_to_timedelta_string(parent->average_time);
+            timestamps << parent_s << " | " << timestamp << std::endl;
+
+            nodes.insert(nodes.begin(), kid);
+        }
+    }
+    //log 1
+    log("start activity is: ");
+    log("end   activity is: ");
+
+    connections.close();
+    timestamps.close();
+
+}
 
 void DrawDisplay(display_3D &d) {
 
@@ -4018,6 +4181,11 @@ void DrawDisplay(display_3D &d) {
 
             if (d.UniqueTracesCalced == 0) {
 
+                d.mt.base_node = nullptr;
+                d.mt.total_node_count = 0;
+                d.mt.closest_time_nodes.clear();
+                d.mt.node_to_merge = nullptr;
+
                 //each singular trace
                 for (int i = 0; i < traces.size(); i++) {
 
@@ -4102,6 +4270,10 @@ void DrawDisplay(display_3D &d) {
 
                     Node* node = new Node;
                     node->creationID = i;
+                    if (node->creationID > 100) {
+                        log("WTF");
+                        exit(0);
+                    }   
                     node->event_count = master_trace.count;
                     node->name = master_trace.names[i];
                     node->event_type = master_trace.events[i];
@@ -4111,6 +4283,7 @@ void DrawDisplay(display_3D &d) {
                     node->extra_event_count = 0;
                     node->extra_average_time = 0;
                     d.mt.total_node_count++;
+                    log("hi:", d.mt.total_node_count);
 
             
                     if (last_node != nullptr) {
@@ -4156,9 +4329,11 @@ void DrawDisplay(display_3D &d) {
             }
 
 
-            //Extra merge pass
+            //ExtraMergePass(d.mt);
 
             d.dirty = 0;
+
+            export_data(d.mt);
         }
 
 
@@ -4251,6 +4426,8 @@ void DrawWorld(world& w) {
 
 
 }
+
+
 
 
 
