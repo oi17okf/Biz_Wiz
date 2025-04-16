@@ -450,7 +450,7 @@ struct display_3D {
     MasterTrace mt;
     std::vector<UniqueTrace> UniqueTraces;
     int UniqueTracesCalced = 0;
-    int traces_used = 1;
+    int traces_used = 1000;
     int bla = 1;
 
     DisplayType type;
@@ -3759,35 +3759,73 @@ void export_data(MasterTrace& mt) {
     Node* parent = nullptr;
     nodes.insert(nodes.begin(), mt.base_node);
 
+    std::vector<Node*> exit_nodes;
+
+    std::vector<std::string> connection_strings;
+    std::vector<std::string> timestamp_strings;
+
     while(!nodes.empty()) {
 
         parent = nodes.back();
         nodes.pop_back();
 
+        std::string parent_s = parent->name + std::to_string(parent->creationID);
+        std::string timestamp = seconds_to_timedelta_string(parent->average_time);
+        std::string timestamp_out = parent_s + " | " + timestamp;
+
+        if(std::find(timestamp_strings.begin(), timestamp_strings.end(), timestamp_out) == timestamp_strings.end()) {
+            timestamps << timestamp_out << std::endl;
+            timestamp_string.push_back(timestamp_out);
+        }
+
+        
+
         for (int i = 0; i < parent->next_nodes.size(); i++) {
 
             Node* kid = parent->next_nodes[i];
-
-            //Output data
-            std::string parent_s = parent->name + std::to_string(parent->creationID);
+            
             std::string kid_s    = kid->name + std::to_string(kid->creationID);
             std::string count    = std::to_string(parent->event_count);
-
-            //out to log1 
-            connections << parent_s << "," << kid_s << "," << count << std::endl;
-
-            //out to log2
+            std::string connection_out = parent_s + "," + kid_s + "," + count;
 
 
-            std::string timestamp = seconds_to_timedelta_string(parent->average_time);
-            timestamps << parent_s << " | " << timestamp << std::endl;
+            if(std::find(connection_strings.begin(), connection_strings.end(), connection_out) == connection_strings.end()) {
+                connections << connection_out << std::endl;
+                connection_string.push_back(connection_out);
+            }            
 
             nodes.insert(nodes.begin(), kid);
         }
+
+        if (parent->next_nodes.size() == 0) {
+
+            int exists_already = 0;
+            for (int i = 0; i < exit_nodes.size(); i++) {
+
+                if (parent->creationID == exit_nodes[i]->creationID) {
+                    exists_already = 1;
+                }
+            }
+
+            if (exists_already == 0) {
+                exit_nodes.push_back(parent);
+            }
+
+        }
     }
-    //log 1
-    log("start activity is: ");
-    log("end   activity is: ");
+
+    // Start node
+    std::string start_output = mt.base_node->name + std::to_string(mt.base_node->creationID);
+    connections << "Start:" << start_output << std::endl;
+
+
+    // End nodes
+    for (int i = 0; i < exit_nodes.size(); i++) {
+
+        std::string output = exit_nodes[i]->name + std::to_string(exit_nodes[i]->creationID);
+        connections << "End:" << output << std::endl;
+    }
+
 
     connections.close();
     timestamps.close();
@@ -4334,6 +4372,8 @@ void DrawDisplay(display_3D &d) {
             d.dirty = 0;
 
             export_data(d.mt);
+            // remove before running script.
+            //exit(0);
         }
 
 
@@ -4431,9 +4471,15 @@ void DrawWorld(world& w) {
 
 
 
-int main() {
+int main(int argc, char* argv[]) {
+
 
     std::string xes_filename = "RequestForPayment.xes_";
+
+    if (argc >= 2) {
+
+        xes_filename = argv[1];
+    }
 
     SetTraceLogLevel(LOG_ALL);
 
