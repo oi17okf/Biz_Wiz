@@ -13,13 +13,23 @@ from pm4py.visualization.dfg.variants import timeline as timeline_gviz_generator
 
 import pandas as pd
 
-if (len(sys.argv) != 4):
-    print("Usage: OutputName connections timestamps")
+if (len(sys.argv) != 5):
+    print("Usage: OutputName connections timestamps olddata")
     exit(0)
 
-out_file  = sys.argv[1]
-conn_file = sys.argv[2]
-time_file = sys.argv[3]
+out_file_new  = sys.argv[1] + "_new.png"
+out_file_old  = sys.argv[1] + "_old.png"
+conn_file     = sys.argv[2]
+time_file     = sys.argv[3]
+old_data_file = sys.argv[4]
+
+
+log = pm4py.read_xes(old_data_file)
+old_dfg, start_act, end_act = pm4py.discover_dfg_typed(log) 
+dfg_time = clean_time.apply(log) # change log to account for some pre-processing mechanism (e.g., log_dafsa)
+gviz_old = timeline_gviz_generator.apply(old_dfg, dfg_time, parameters={"format": "png", "start_activities": start_act,
+                                                                    "end_activities": end_act})
+dfg_visualizer.save(gviz_old, out_file_old)
 
 activity_durations = {}
 
@@ -31,7 +41,7 @@ with open(time_file, "r") as file:
             duration = duration.strip()
             activity_durations[activity] = pd.to_timedelta(duration)
 
-print(activity_durations)
+#print(activity_durations)
 
 # Read the DFG data from a text file
 dfg = {}
@@ -52,11 +62,11 @@ with open(conn_file, "r") as file:
             dfg[(source, target)] = int(freq)
 
 
-print(dfg)
-print(start_activities)
-print(end_activities)
+#print(dfg)
+#print(start_activities)
+#print(end_activities)
 
 
 gviz = timeline_gviz_generator.apply(dfg, activity_durations, parameters={"format": "png", "start_activities": start_activities,
                                                                     "end_activities": end_activities})
-dfg_visualizer.save(gviz, out_file)
+dfg_visualizer.save(gviz, out_file_new)

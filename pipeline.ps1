@@ -1,7 +1,7 @@
 
-$exampleFolder = "examples"
-$exe           = "desktop.exe"
-$python        = "graph_generator.py"
+$exampleFolder = "Exempel"
+$exe           = "./desktop.exe"
+$python        = "python"
 
 $fileList = @()
 
@@ -15,26 +15,29 @@ if (Test-Path -Path $exampleFolder -PathType Container) {
 
         foreach ($fileName in $fileList) {
 
-            Write-Host "Running desktop.exe on " + $fileName
-            $argumentPath = Join-Path -Path $exampleFolder -ChildPath $fileName
+            Write-Host "Running desktop.exe on"$fileName""
+            $argumentPath = "$exampleFolder" + "/" + "$fileName"
 
-            Write-Host "Attempting to run: $exePath ""$argumentPath"""
+            Write-Host "Attempting to run: $exe "$argumentPath""
 
             # run desktop.exe
             try {
-                Start-Process -FilePath $exe -ArgumentList "$argumentPath"
+                Start-Process -FilePath $exe -ArgumentList "$argumentPath" -Wait
             } catch {
                 Write-Error "Error running '$exe' for file '$argumentPath': $_"
             }
 
 
             # run generate_graph.py 
-            $outputname = $file -replace "\.txt$", ""
+            $outputname = $fileName -replace "\.txt$", ""
+            $outputpath = "Graphs\" + $outputname
+            Write-Host $outputpath
             try {
-                StartProcess -FilePath $python -ArgumentList "outputname" "connections.txt", "timestamps.txt"
+                Start-Process -FilePath $python -ArgumentList "test.py", "$outputpath", "connections.txt", "timestamps.txt", "$argumentPath" -Wait
             } catch {
                 Write-Error "Error generating graph: $_"
             }
+
         }
     } else {
         Write-Host "No files found in the specified folder."

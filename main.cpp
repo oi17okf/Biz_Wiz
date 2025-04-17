@@ -1176,8 +1176,10 @@ std::string time_to_string(time_t t) {
 
 void parse_xes(XMLElement* root, xes_data &data) {
 
+    log("yes");
     for (XMLElement* log_trace = root->FirstChildElement("trace"); 
         log_trace != nullptr; log_trace = log_trace->NextSiblingElement("trace")) {
+        log("trace-loop");
 
         trace t;
         t.valid = 0;
@@ -1185,6 +1187,7 @@ void parse_xes(XMLElement* root, xes_data &data) {
 
         for (XMLElement* log_event = log_trace->FirstChildElement("event"); 
             log_event != nullptr; log_event = log_event->NextSiblingElement("event")) {
+            log("event-loop");
 
             data.events++;
 
@@ -3484,7 +3487,7 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
         //log("new node created");
         merged_node = new Node;
         merged_node->creationID = mt.total_node_count;
-        if (merged_node->creationID > 100) {
+        if (merged_node->creationID > 1000) {
             log("WTF");
             exit(0);
         }   
@@ -3775,7 +3778,7 @@ void export_data(MasterTrace& mt) {
 
         if(std::find(timestamp_strings.begin(), timestamp_strings.end(), timestamp_out) == timestamp_strings.end()) {
             timestamps << timestamp_out << std::endl;
-            timestamp_string.push_back(timestamp_out);
+            timestamp_strings.push_back(timestamp_out);
         }
 
         
@@ -3791,7 +3794,7 @@ void export_data(MasterTrace& mt) {
 
             if(std::find(connection_strings.begin(), connection_strings.end(), connection_out) == connection_strings.end()) {
                 connections << connection_out << std::endl;
-                connection_string.push_back(connection_out);
+                connection_strings.push_back(connection_out);
             }            
 
             nodes.insert(nodes.begin(), kid);
@@ -4309,7 +4312,7 @@ void DrawDisplay(display_3D &d) {
                     Node* node = new Node;
                     node->creationID = i;
                     if (node->creationID > 100) {
-                        log("WTF");
+                        log("WTF", (int)master_trace.events.size());
                         exit(0);
                     }   
                     node->event_count = master_trace.count;
@@ -4373,7 +4376,7 @@ void DrawDisplay(display_3D &d) {
 
             export_data(d.mt);
             // remove before running script.
-            //exit(0);
+            exit(0);
         }
 
 
@@ -4475,11 +4478,12 @@ int main(int argc, char* argv[]) {
 
 
     std::string xes_filename = "RequestForPayment.xes_";
-
+    log(xes_filename);
     if (argc >= 2) {
 
         xes_filename = argv[1];
     }
+    log(xes_filename);
 
     SetTraceLogLevel(LOG_ALL);
 
@@ -4515,7 +4519,7 @@ int main(int argc, char* argv[]) {
     load_state(world);
 
     std::string action = "";
-
+    log("here");
 
     world.camera.position = (Vector3){ 2.0f, 0.5f, 2.0f };
     world.camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
@@ -4537,7 +4541,7 @@ int main(int argc, char* argv[]) {
 
     Collision_Results col_res = { NO_COLLISION };
 
-    Mesh cubeMesh = GenMeshCube(0.5f, 0.5f, 0.5f);
+    Mesh cubeMesh   = GenMeshCube(0.5f, 0.5f, 0.5f);
     Model cubeModel = LoadModelFromMesh(cubeMesh);
 
     //Mesh sphereMesh = GenMeshCube(0.5f, 0.5f, 0.5f);
@@ -4547,14 +4551,14 @@ int main(int argc, char* argv[]) {
     //cubeModel.materials[0].shader = shader;
 
     Vector2 old_mos_pos_2D = { 0, 0 };
-
+    log("b4 main loop");
     while (!WindowShouldClose()) {
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& GLOBAL INPUT &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
         if (IsKeyPressed(KEY_F11)) { ToggleFullscreen(); }
 
-        main_window.end.x  = GetScreenWidth();
+        main_window.end.x = GetScreenWidth();
         main_window.end.y = GetScreenHeight();
 
         m.pos           = GetMousePosition();
