@@ -403,6 +403,7 @@ struct Node {
     int event_count;
     float average_time;
     std::vector<Node*> next_nodes;
+    std::vector<int> next_nodes_counts;
     std::vector<Node*> prev_nodes;
     Node* extra_node = nullptr;
     int is_attempting_merge;
@@ -421,7 +422,7 @@ struct Node {
 
 struct MasterTrace {
 
-    Node* base_node;
+    std::vector<Node*> base_nodes;
     int total_node_count;
     //List of Each event Type and their count
     std::vector<Node*> closest_time_nodes;
@@ -3272,7 +3273,7 @@ float merge_time(int event_count1, float average_time1, int event_count2, float 
 
     if ((res > average_time1 && res > average_time2) || (res < average_time1 && res < average_time2)) {
 
-        log ("WTF");
+        log("WTF");
         log("ec1: ", event_count1);
         log("at1: ", average_time1);
         log("ec2: ", event_count2);
@@ -3291,7 +3292,7 @@ float merge_time(int event_count1, float average_time1, int event_count2, float 
 int CheckValidMerge(MasterTrace& mt) {
 
     std::vector<Node*> nodes;
-    nodes.insert(nodes.begin(), mt.base_node);
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
     Node* parent = nullptr;
 
     while(!nodes.empty()) {
@@ -3353,10 +3354,7 @@ int CheckValidMerge(MasterTrace& mt) {
             if (kid_time < parent->average_time) {
                 return 0;
             }
-
-
         }
-
     }
 
     //went through entire graph, all good!
@@ -3368,7 +3366,7 @@ int CheckValidMerge(MasterTrace& mt) {
 Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float event_time, int event_count, Node* prevNode) {
 
     std::vector<Node*> nodes;
-    nodes.insert(nodes.begin(), mt.base_node);
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
     Node* parent = nullptr;
 
     mt.closest_time_nodes.clear();
@@ -3376,7 +3374,7 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
     int count = 0;
     while(!nodes.empty()) {
         count++;
-        if (count > 100) { exit(0); }
+        if (count > 100) { log("mergeletter error"); exit(0); }
 
 
         parent = nodes.back();
@@ -3384,6 +3382,7 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
         //log(parent->name);
 
         //should time diff calc care about count? maybe
+        //can add same node multiple times
         if (parent->event_type == event_type) {
             parent->time_diff = parent->average_time - event_time;
             parent->time_diff = parent->time_diff < 0 ? parent->time_diff * -1 : parent->time_diff;
@@ -3412,6 +3411,17 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
         //log("diff: ", mt.closest_time_nodes[i]->time_diff);
 
     //}
+
+    /*
+      A              A(10)    A(100)
+     / \             |        |
+    B   C            B(10)    C(100)
+     \ /             |        |
+      D              D(10)    D(100)
+
+          */
+
+
     count = 0;
     int merged = 0;
     Node* node_ptr = nullptr;
@@ -3451,26 +3461,45 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
             node_ptr->extra_average_time  = 0;
             log("successfully merging node: " + name);
 
-            //add check so a node does not point to same node twice or more
+            
             if (prevNode != nullptr) {
 
+                //add check so a node does not point to same node twice or more
                 int already_exists = 0;
+                int exists_index = -1;
 
                 for (int i = 0; i < prevNode->next_nodes.size(); i++) {
 
                     if (prevNode->next_nodes[i]->name == name) {
                         already_exists = 1;
+                        exists_index = i;
                     }
                 }
 
                 if (already_exists) {
-                    log("prev node exists and has this name already. doing nothing");
+                    log("prev node exists and has this name already. only updating edge count");
+                    prevNode->next_nodes_counts[exists_index] += event_count;
                 } else {
                     prevNode->next_nodes.push_back(merged_node);
+                    prevNode->next_nodes_counts.push_back(event_count);
                     log("MERGE - prev node existed. added " + name + " to " + prevNode->name + "'s next nodes");
                 }
+
             } else {
-                log("no prev node existed when merging " + name);
+
+                // just an assert
+                int base_node_found = 0;
+                for (int i = 0; i < mt.base_nodes.size(); i++) {
+                    if (merged_node->name == mt.base_nodes[i]->name) {
+                        base_node_found == 1;
+                    } 
+                }
+
+                if (base_node_found == 0) {
+                    log("ERROR - no prev node found but merged node is not a base node. NAME: " + name);
+                    exit(0);
+                }
+
             }
 
             break;
@@ -3500,9 +3529,11 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
 
         if (prevNode != nullptr) {
             prevNode->next_nodes.push_back(merged_node);
+            prevNode->next_nodes_counts.push_back(merged_node->event_count);
             log("NO MERGE - prev node existed. added " + name + " to " + prevNode->name + "'s next nodes");
         } else {
-            log("BAD - new node could not be added anywhere no prev node was found. Probably an alternate start. node name: " + name);
+            mt.base_nodes.push_back(merged_node);
+            log("Added alternate start with name:" + name);
         }
 
     }
@@ -3530,11 +3561,38 @@ void RemoveNode(Node* node, MasterTrace& mt) {
 
 }
 
+void SwapNode(Node* node, Node* pot_node) {
+
+    for (int i = 0; i < node->prev_nodes.size(); i++) {
+        Node* prev_node = node->prev_nodes[i];
+        
+        int count = 0;
+        for (int j = 0; j < prev_node->next_nodes.size(); j++) {
+
+            if (prev_node->next_nodes[j]->creationID == node->creationID) {
+                kid->next_nodes.erase(kid->next_nodes.begin() + j);
+                count = prev_node->next_nodes_counts[j];
+                kid->next_nodes_counts.erase(kid->next_nodes_counts.begin() + j);
+                break;
+            }
+        }
+
+        prev_node->extra_node = nullptr;
+        prev_node->next_nodes.insert(prev_node->next_nodes.begin(), pot_node);
+        prev_node->next_nodes_counts.insert(prev_node->next_nodes_counts.begin(), count);
+    }
+}
+
+// Goes through graph looking for another node with the same name as node. 
+// If found, creates a merged node with those two with the correct edges. 
+// Then it checks if the graph is still valid with the new merged node.
+// If so, delete the old two nodes and keep the merged one. And exit function.
+// otherwise, delete the new merged node and try another combination.
 int InnerInnerMergePass(Node* node, MasterTrace& mt) {
     log("InnerInnerMergePass");
 
     std::vector<Node*> nodes;
-    nodes.insert(nodes.begin(), mt.base_node);
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
     Node* parent = nullptr;
 
     std::string name = node->name;
@@ -3544,94 +3602,78 @@ int InnerInnerMergePass(Node* node, MasterTrace& mt) {
         parent = nodes.back();
         nodes.pop_back();
         
+        //If two nodes have the same name but are not the same node.
         if (parent->name == name && node->creationID != parent->creationID) {
 
+            // maybe i should have used a function...
             Node* pot_node         = new Node;
+            pot_node->event_type   = node->event_type;
+            pot_node->name         = node->name;
+            pot_node->extra_node   = nullptr;
             pot_node->creationID   = mt.total_node_count;
             pot_node->event_count  = parent->event_count + node->event_count;
             pot_node->average_time = merge_time(parent->event_count, parent->average_time,
                                                 node->event_count, node->average_time);
 
+
             pot_node->is_attempting_merge = 1;
+            pot_node->extra_event_count   = 0;
+            pot_node->extra_average_time  = 0;
 
-            for (int i = 0; i < node->prev_nodes.size(); i++) {
-                Node* kid = node->prev_nodes[i];
-                kid->extra_node = pot_node;
+            for (int i = 0; i < node->prev_nodes.size();   i++) { node->prev_nodes[i]->extra_node   = pot_node; }
+            for (int i = 0; i < parent->prev_nodes.size(); i++) { parent->prev_nodes[i]->extra_node = pot_node; }
 
-            }
-            for (int i = 0; i < parent->prev_nodes.size(); i++) {
-                Node* kid = parent->prev_nodes[i];
-                kid->extra_node = pot_node;
-            }
-
-            pot_node->next_nodes.insert(pot_node->next_nodes.begin(), parent->next_nodes.begin(), parent->next_nodes.end());
-            pot_node->next_nodes.insert(pot_node->next_nodes.begin(), node->next_nodes.begin(), node->next_nodes.end());
+            pot_node->next_nodes.insert(pot_node->next_nodes.begin(), 
+                                        parent->next_nodes.begin(), parent->next_nodes.end());
+            pot_node->next_nodes_counts.insert(pot_node->next_nodes_counts.begin(), 
+                                               parent->next_nodes_counts.begin(), parent->next_nodes_counts.end());
+            pot_node->next_nodes.insert(pot_node->next_nodes.begin(), 
+                                        node->next_nodes.begin(), node->next_nodes.end());
+            pot_node->next_nodes_counts.insert(pot_node->next_nodes_counts.begin(), 
+                                               node->next_nodes_counts.begin(), node->next_nodes_counts.end());
 
             log("CheckingValidMerge");
             int valid = CheckValidMerge(mt);
+
+            /*
+
+            A     D - prev_nodes  layer
+            | \ / |
+            B  B  B - node/parent layer
+            | / \ |
+            C     E - next_nodes  layer
+
+            */
 
             if (valid) {
                 log("--- MERGING ---");
                 mt.total_node_count++; //not great, since 2 nodes are killed...
 
-                for (int i = 0; i < node->prev_nodes.size(); i++) {
-                    Node* kid = node->prev_nodes[i];
-                    kid->next_nodes.insert(kid->next_nodes.begin(), kid->extra_node);
-                    for (int j = 0; j < kid->next_nodes.size(); j++) {
-                        Node* kidnext = kid->next_nodes[j];
-                        if (kidnext->creationID == node->creationID) {
-                            log("deleted");
-                            kid->next_nodes.erase(kid->next_nodes.begin() + j);
-                            log("hi");
-                            break;
-                        }
-                    }
-                    kid->extra_node = nullptr;
-                }
-
+                //Swaps prev_nodes layer pointer to pot_node from the one to be deleted. Then deletes first node.
+                SwapNode(node, pot_node);
                 delete node;
-
-                log("wtf");
-                for (int i = 0; i < parent->prev_nodes.size(); i++) {
-                    Node* kid = parent->prev_nodes[i];
-                    kid->next_nodes.insert(kid->next_nodes.begin(), kid->extra_node);
-                    for (int j = 0; j < kid->next_nodes.size(); j++) {
-                        Node* kidnext = kid->next_nodes[j];
-                        if (kidnext->creationID == parent->creationID) {
-                            kid->next_nodes.erase(kid->next_nodes.begin() + j);
-                            log("deleted");
-                        }
-                    }
-                    kid->extra_node = nullptr;
-                }
-
+                SwapNode(parent, pot_node);
                 delete parent;
+
+                //double check this then remove comment. pls
+                pot_node->is_attempting_merge = 0;
+                for (int i = 0; i < node->prev_nodes.size();   i++) { node->prev_nodes[i]->extra_node   = nullptr; }
+                for (int i = 0; i < parent->prev_nodes.size(); i++) { parent->prev_nodes[i]->extra_node = nullptr; }
 
                 return 1;
 
             } else {
 
                 delete pot_node;
-
-                for (int i = 0; i < node->prev_nodes.size(); i++) {
-                    Node* kid = node->prev_nodes[i];
-                    kid->extra_node = nullptr;
-
-                }
-                for (int i = 0; i < parent->prev_nodes.size(); i++) {
-                    Node* kid = parent->prev_nodes[i];
-                    kid->extra_node = nullptr;
-                }
+                for (int i = 0; i < node->prev_nodes.size();   i++) { node->prev_nodes[i]->extra_node   = nullptr; }
+                for (int i = 0; i < parent->prev_nodes.size(); i++) { parent->prev_nodes[i]->extra_node = nullptr; }
+            
             }
-
         }
         
 
         for (int i = 0; i < parent->next_nodes.size(); i++) {
-
-            Node* kid = parent->next_nodes[i];
-
-            nodes.insert(nodes.begin(), kid);
+            nodes.insert(nodes.begin(), parent->next_nodes[i]);
         }
     }
 
@@ -3643,7 +3685,7 @@ int InnerMergePass(MasterTrace& mt) {
 
     log("InnerMergePass");
     std::vector<Node*> nodes;
-    nodes.insert(nodes.begin(), mt.base_node);
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
     Node* parent = nullptr;
 
     while(!nodes.empty()) {
@@ -3670,7 +3712,7 @@ void ClearPrevNodes(MasterTrace& mt) {
 
     std::vector<Node*> nodes;
     Node* parent = nullptr;
-    nodes.insert(nodes.begin(), mt.base_node);
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
     
     while(!nodes.empty()) {
 
@@ -3692,7 +3734,7 @@ void SetPrevNodes(MasterTrace& mt) {
 
     std::vector<Node*> nodes;
     Node* parent = nullptr;
-    nodes.insert(nodes.begin(), mt.base_node);
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
 
     while(!nodes.empty()) {
 
@@ -3760,7 +3802,7 @@ void export_data(MasterTrace& mt) {
 
     std::vector<Node*> nodes;
     Node* parent = nullptr;
-    nodes.insert(nodes.begin(), mt.base_node);
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
 
     std::vector<Node*> exit_nodes;
 
@@ -3788,7 +3830,7 @@ void export_data(MasterTrace& mt) {
             Node* kid = parent->next_nodes[i];
             
             std::string kid_s    = kid->name + std::to_string(kid->creationID);
-            std::string count    = std::to_string(parent->event_count);
+            std::string count    = std::to_string(parent->next_nodes_counts[i]);
             std::string connection_out = parent_s + "," + kid_s + "," + count;
 
 
@@ -3817,10 +3859,12 @@ void export_data(MasterTrace& mt) {
         }
     }
 
-    // Start node
-    std::string start_output = mt.base_node->name + std::to_string(mt.base_node->creationID);
-    connections << "Start:" << start_output << std::endl;
+    // Start nodes
+    for (int i = 0; i < mt.base_nodes.size(); i++) {
 
+        std::string start_output = mt.base_nodes[i]->name + std::to_string(mt.base_nodes[i]->creationID);
+        connections << "Start:" << start_output << std::endl;
+    }
 
     // End nodes
     for (int i = 0; i < exit_nodes.size(); i++) {
@@ -4222,7 +4266,7 @@ void DrawDisplay(display_3D &d) {
 
             if (d.UniqueTracesCalced == 0) {
 
-                d.mt.base_node = nullptr;
+                d.mt.base_nodes.clear();
                 d.mt.total_node_count = 0;
                 d.mt.closest_time_nodes.clear();
                 d.mt.node_to_merge = nullptr;
@@ -4315,20 +4359,21 @@ void DrawDisplay(display_3D &d) {
                         log("WTF", (int)master_trace.events.size());
                         exit(0);
                     }   
-                    node->event_count = master_trace.count;
-                    node->name = master_trace.names[i];
-                    node->event_type = master_trace.events[i];
+                    node->event_count  = master_trace.count;
+                    node->name         = master_trace.names[i];
+                    node->event_type   = master_trace.events[i];
                     node->average_time = master_trace.times[i];
 
                     node->is_attempting_merge = 0;
-                    node->extra_event_count = 0;
-                    node->extra_average_time = 0;
+                    node->extra_event_count   = 0;
+                    node->extra_average_time  = 0;
                     d.mt.total_node_count++;
                     log("hi:", d.mt.total_node_count);
 
             
                     if (last_node != nullptr) {
                         node->next_nodes.push_back(last_node);
+                        node->next_nodes_counts.push_back(node->event_count);
                     }
 
 
@@ -4336,7 +4381,7 @@ void DrawDisplay(display_3D &d) {
 
                     if (i == 0) {
 
-                        d.mt.base_node = node;
+                        d.mt.base_nodes.push_back(node);
                     }
 
                 }
@@ -4387,7 +4432,7 @@ void DrawDisplay(display_3D &d) {
         //TODO add seen in drawing, otherwise done
 
         std::vector<Node*> nodes;
-        nodes.insert(nodes.begin(), d.mt.base_node);
+        nodes.insert(nodes.begin(), d.mt.base_nodes.begin(), d.mt.base_nodes.end());
         Node* parent = nullptr;
 
         int count = 0;

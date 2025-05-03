@@ -69,4 +69,6 @@ with open(conn_file, "r") as file:
 
 gviz = timeline_gviz_generator.apply(dfg, activity_durations, parameters={"format": "png", "start_activities": start_activities,
                                                                     "end_activities": end_activities})
+print(gviz)
+
 dfg_visualizer.save(gviz, out_file_new)
