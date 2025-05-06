@@ -3274,18 +3274,9 @@ enum MainState {
 
 float merge_time(int event_count1, float average_time1, int event_count2, float average_time2) {
 
+    if (event_count1 + event_count2 == 0) { return 0; }
+
     float res = ((event_count1 * average_time1) + (event_count2 * average_time2)) / (event_count1 + event_count2);
-
-    if ((res > average_time1 && res > average_time2) || (res < average_time1 && res < average_time2)) {
-
-        log("WTF");
-        log("ec1: ", event_count1);
-        log("at1: ", average_time1);
-        log("ec2: ", event_count2);
-        log("at2: ", average_time2);
-        log("res: ", res);
-        exit(0);
-    }
 
     return res;
 
