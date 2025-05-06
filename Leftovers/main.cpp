@@ -290,6 +290,7 @@ struct event {
     time_t time;
     int valid;
     char type;
+    int used;
 };
 
 struct event_conn {
@@ -303,8 +304,10 @@ struct trace {
     std::vector<event> events;
     std::vector<event_conn> connections;
     int valid;
+    std::string type;
 
 };
+
 std::vector<trace> traces;
 std::vector<std::string> names;
 
@@ -409,6 +412,7 @@ struct Node {
     int is_attempting_merge;
     int extra_event_count;
     float extra_average_time;
+    std::vector<std::string> unique_traces;
 
     int deleted = 0;
 
@@ -1183,6 +1187,7 @@ void parse_xes(XMLElement* root, xes_data &data) {
         log("trace-loop");
 
         trace t;
+        t.type = "";
         t.valid = 0;
         int first = 1;
 
@@ -1233,7 +1238,7 @@ void parse_xes(XMLElement* root, xes_data &data) {
                 }
             }
             if (e.type == -1) { log("error parsing log"); }
-
+            t.type += e.type;
             t.events.push_back(e);
         }
 
@@ -3363,7 +3368,7 @@ int CheckValidMerge(MasterTrace& mt) {
 }
 
 //prevNode is used when creating a new node, since it needs to be tied in to the structure somehow
-Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float event_time, int event_count, Node* prevNode) {
+Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float event_time, int event_count, Node* prevNode, std::string rep) {
 
     std::vector<Node*> nodes;
     nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
@@ -3459,6 +3464,7 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
             node_ptr->is_attempting_merge = 0;
             node_ptr->extra_event_count   = 0;
             node_ptr->extra_average_time  = 0;
+            node_ptr->unique_traces.push_back(rep);
             log("successfully merging node: " + name);
 
             
@@ -3526,6 +3532,7 @@ Node* MergeLetter(MasterTrace &mt, char event_type, std::string name, float even
         merged_node->event_count = event_count;
         merged_node->average_time = event_time;
         merged_node->is_attempting_merge = 0;
+        merged_node->unique_traces.push_back(rep);
 
         if (prevNode != nullptr) {
             prevNode->next_nodes.push_back(merged_node);
@@ -3550,7 +3557,7 @@ void MergeMasterTrace(MasterTrace& mt, UniqueTrace t) {
     for (int i = 0; i < t.events.size(); i++) {
 
         log("merging mastertrace with " + t.names[i]);
-        prevNode = MergeLetter(mt, t.events[i], t.names[i], t.times[i], t.count, prevNode);
+        prevNode = MergeLetter(mt, t.events[i], t.names[i], t.times[i], t.count, prevNode, t.rep);
 
     }
 }
@@ -3631,7 +3638,10 @@ int InnerInnerMergePass(Node* node, MasterTrace& mt) {
                                         node->next_nodes.begin(), node->next_nodes.end());
             pot_node->next_nodes_counts.insert(pot_node->next_nodes_counts.begin(), 
                                                node->next_nodes_counts.begin(), node->next_nodes_counts.end());
-
+            pot_node->unique_traces.insert(pot_node->unique_traces.begin(), 
+                                           parent->unique_traces.begin(), parent->unique_traces.end());
+            pot_node->unique_traces.insert(pot_node->unique_traces.begin(), 
+                                           node->unique_traces.begin(), node->unique_traces.end());
             log("CheckingValidMerge");
             int valid = CheckValidMerge(mt);
 
@@ -3788,6 +3798,67 @@ std::string seconds_to_timedelta_string(float seconds) {
        << std::setw(2) << secs;
 
     return ss.str();
+}
+
+//how many loops can i do-o-o-o
+void calc_time_diff_event(Node* node) {
+
+    float sum = 0;
+
+    for (int i = 0; i < traces.size(); i++) {
+
+        for (int j = 0; j < node->unique_traces.size(); j++) {
+
+            if (node->unique_traces[j] == traces[i].type) {
+
+                for (int k = 0; k < traces[i].events.size(); k++) {
+
+                    //we finally found a hit!
+                    if (node->event_type == traces[i].events[k].type && traces[i].events[k].used == 0) {
+
+                        float rel_time = traces[i].events[k].time - traces[i].events[0].time;
+                        float diff = node->average_time - rel_time;
+                        float abs_diff = diff < 0 ? -diff : diff;
+                        sum =+ abs_diff;
+
+                        traces[i].events[k].used = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    return sum;
+}
+
+void calc_time_diff(MasterTrace& mt) {
+
+    float sum = 0;
+    //set used on all event to 0
+
+
+    std::vector<Node*> nodes;
+    Node* parent = nullptr;
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
+
+    while(!nodes.empty()) {
+
+        parent = nodes.back();
+        nodes.pop_back();
+
+        sum += calc_time_diff_event(parent);
+
+        for (int i = 0; i < parent->next_nodes.size(); i++) {
+
+            Node* kid = parent->next_nodes[i];
+            
+            nodes.insert(nodes.begin(), kid);
+        }
+    }
+
+    //verify that all events used are 1.
+
+    //divide sum by number of events
 }
 
 void export_data(MasterTrace& mt) {
@@ -4367,6 +4438,7 @@ void DrawDisplay(display_3D &d) {
                     node->is_attempting_merge = 0;
                     node->extra_event_count   = 0;
                     node->extra_average_time  = 0;
+                    node->unique_traces.push_back(master_trace.rep);
                     d.mt.total_node_count++;
                     log("hi:", d.mt.total_node_count);
 
@@ -4418,7 +4490,7 @@ void DrawDisplay(display_3D &d) {
             //ExtraMergePass(d.mt);
 
             d.dirty = 0;
-
+            calc_time_diff(d.mt);
             export_data(d.mt);
             // remove before running script.
             exit(0);
