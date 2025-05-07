@@ -31,6 +31,14 @@ gviz_old = timeline_gviz_generator.apply(old_dfg, dfg_time, parameters={"format"
                                                                     "end_activities": end_act})
 dfg_visualizer.save(gviz_old, out_file_old)
 
+df = pm4py.convert_to_dataframe(log)
+df['time:timestamp'] = pd.to_datetime(df['time:timestamp'])
+avg_times_per_type = df.groupby('concept:name')['time:timestamp'].transform('mean')
+time_offset = df['time:timestamp'] - avg_times_per_type
+absolute_offset_seconds = time_offset.abs().dt.total_seconds()
+average_offset = absolute_offset_seconds.mean()
+print(f"Average offset: {average_offset:.2f} seconds")
+
 activity_durations = {}
 
 with open(time_file, "r") as file:

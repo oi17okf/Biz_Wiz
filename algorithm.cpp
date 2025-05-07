@@ -963,11 +963,10 @@ void step_3_clean_graph(master_trace &mt) {
     }
 }
 
-void main_algorithm(event_log &data) {
+void main_algorithm(event_log &data, std::string name) {
 
-    traces &traces = data.traces;
     //Step 1
-    std::vector<unique_trace> unique_traces = step_1_calc_unique_traces(traces);
+    std::vector<unique_trace> unique_traces = step_1_calc_unique_traces(data.traces);
 
     //Step 2
     master_trace mt = step_2_build_graph(unique_traces);
@@ -975,13 +974,17 @@ void main_algorithm(event_log &data) {
     //Step 3
     step_3_clean_graph(mt);
 
-    calc_time_diff(mt, data.events);
+    // Not part of algorithm, just outputting data.
+    float time_diff = calc_time_diff(mt, data.events);
+
+    log("-------------------------------");
+    log(name + " TIME_DIFF: ", time_diff);
+    log("-------------------------------");
 
     export_data(mt);
     
 }
        
-
 int main(int argc, char* argv[]) {
 
     std::string event_log_filename = "Exempel/RequestForPayment.xes_";
