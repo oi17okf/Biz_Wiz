@@ -24,20 +24,20 @@ time_file     = sys.argv[3]
 old_data_file = sys.argv[4]
 
 
-log = pm4py.read_xes(old_data_file)
-old_dfg, start_act, end_act = pm4py.discover_dfg_typed(log) 
-dfg_time = clean_time.apply(log) # change log to account for some pre-processing mechanism (e.g., log_dafsa)
-gviz_old = timeline_gviz_generator.apply(old_dfg, dfg_time, parameters={"format": "png", "start_activities": start_act,
-                                                                    "end_activities": end_act})
-dfg_visualizer.save(gviz_old, out_file_old)
+#log = pm4py.read_xes(old_data_file)
+#old_dfg, start_act, end_act = pm4py.discover_dfg_typed(log) 
+#dfg_time = clean_time.apply(log) # change log to account for some pre-processing mechanism (e.g., log_dafsa)
+#gviz_old = timeline_gviz_generator.apply(old_dfg, dfg_time, parameters={"format": "png", "start_activities": start_act,
+#                                                                    "end_activities": end_act})
+#dfg_visualizer.save(gviz_old, out_file_old)
 
-df = pm4py.convert_to_dataframe(log)
-df['time:timestamp'] = pd.to_datetime(df['time:timestamp'])
-avg_times_per_type = df.groupby('concept:name')['time:timestamp'].transform('mean')
-time_offset = df['time:timestamp'] - avg_times_per_type
-absolute_offset_seconds = time_offset.abs().dt.total_seconds()
-average_offset = absolute_offset_seconds.mean()
-print(f"Average offset: {average_offset:.2f} seconds")
+#df = pm4py.convert_to_dataframe(log)
+#df['time:timestamp'] = pd.to_datetime(df['time:timestamp'])
+#avg_times_per_type = df.groupby('concept:name')['time:timestamp'].transform('mean')
+#time_offset = df['time:timestamp'] - avg_times_per_type
+#absolute_offset_seconds = time_offset.abs().dt.total_seconds()
+#average_offset = absolute_offset_seconds.mean()
+#print(f"Average offset: {average_offset:.2f} seconds")
 
 activity_durations = {}
 
@@ -49,7 +49,7 @@ with open(time_file, "r") as file:
             duration = duration.strip()
             activity_durations[activity] = pd.to_timedelta(duration)
 
-#print(activity_durations)
+print(activity_durations)
 
 # Read the DFG data from a text file
 dfg = {}
@@ -61,18 +61,22 @@ with open(conn_file, "r") as file:
         line = line.strip()
         if line.startswith("Start:"):
             activity = line.split(":")[1]
-            start_activities[activity] = start_activities.get(activity, 0) + 1
+            target, freq = activity.split(",")
+            print(target)
+            print(freq)
+            start_activities[target] = int(freq)
         elif line.startswith("End:"):
             activity = line.split(":")[1]
-            end_activities[activity] = end_activities.get(activity, 0) + 1
+            target, freq = activity.split(",")
+            end_activities[target] = int(freq)
         else:
             source, target, freq = line.split(",")
             dfg[(source, target)] = int(freq)
 
 
 #print(dfg)
-#print(start_activities)
-#print(end_activities)
+print(start_activities)
+print(end_activities)
 
 
 gviz = timeline_gviz_generator.apply(dfg, activity_durations, parameters={"format": "png", "start_activities": start_activities,

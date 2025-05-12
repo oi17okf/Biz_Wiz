@@ -24,6 +24,8 @@ void log(std::string s, char c)  { std::cout << "LOG: " << s << c << std::endl; 
 void log(std::string s, int i)   { s += std::to_string(i); log(s); }
 void log(std::string s, float i) { s += std::to_string(i); log(s); }
 
+#define SIZE 10
+
 struct event {
 
     std::string id;
@@ -80,6 +82,7 @@ struct node {
     int extra_event_count;
     float extra_average_time;
     std::vector<std::string> unique_traces;
+    int end_count = 0;
 
     int deleted = 0;
 
@@ -246,10 +249,13 @@ std::string seconds_to_timedelta_string(float seconds) {
     return ss.str();
 }
 
-void export_data(master_trace& mt) {
+void export_data(master_trace& mt, int i) {
 
-    std::ofstream connections("connections.txt");
-    std::ofstream timestamps("timestamps.txt");
+    std::string conn_out = "connections" + std::to_string(i) + ".txt";
+    std::string time_out = "timestamps"  + std::to_string(i) + ".txt";
+
+    std::ofstream connections(conn_out);
+    std::ofstream timestamps(time_out);
 
     if (!connections || !timestamps) {
         std::cerr << "Error opening file for writing." << std::endl;
@@ -298,7 +304,7 @@ void export_data(master_trace& mt) {
             nodes.insert(nodes.begin(), kid);
         }
 
-        if (parent->next_nodes.size() == 0) {
+        if (parent->end_count != 0) {
 
             int exists_already = 0;
             for (int i = 0; i < exit_nodes.size(); i++) {
@@ -319,7 +325,8 @@ void export_data(master_trace& mt) {
     for (int i = 0; i < mt.base_nodes.size(); i++) {
 
         std::string start_output = mt.base_nodes[i]->name + std::to_string(mt.base_nodes[i]->creationID);
-        connections << "Start:" << start_output << std::endl;
+        std::string count    = std::to_string(mt.base_nodes[i]->event_count);
+        connections << "Start:" << start_output << "," << count << std::endl;
 
     }
 
@@ -327,7 +334,8 @@ void export_data(master_trace& mt) {
     for (int i = 0; i < exit_nodes.size(); i++) {
 
         std::string output = exit_nodes[i]->name + std::to_string(exit_nodes[i]->creationID);
-        connections << "End:" << output << std::endl;
+        std::string count  = std::to_string(exit_nodes[i]->end_count);
+        connections << "End:" << output << "," << count << std::endl;
 
     }
 
@@ -414,6 +422,7 @@ std::vector<unique_trace> step_1_calc_unique_traces(std::vector<trace> &traces) 
     std::vector<unique_trace> unique_traces;
 
     for (int i = 0; i < traces.size(); i++) {
+    //for (int i = 0; i < 500; i++) {
 
         trace t = traces[i];
 
@@ -466,7 +475,7 @@ std::vector<unique_trace> step_1_calc_unique_traces(std::vector<trace> &traces) 
     return unique_traces;
 }
 
-int check_valid_merge(const master_trace& mt, float next_event_time) {
+int check_valid_merge(const master_trace& mt, float next_event_time, int recur) {
 
     std::vector<node*> nodes;
     nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
@@ -480,7 +489,6 @@ int check_valid_merge(const master_trace& mt, float next_event_time) {
         nodes.pop_back(); 
 
         if (parent->is_attempting_merge) {
-
             target = parent;
         }
 
@@ -506,24 +514,27 @@ int check_valid_merge(const master_trace& mt, float next_event_time) {
 
                 if (parent->is_attempting_merge) {
                     log("           match rejected! - parent attemptin merge");
-                    return 0;
+                    
                     //log("           failed merge - parent is attempting merge - SHOULD NOT OCCUR");
-                    //log("           Offending nodes:");
-                    //log("               parent: " + parent->name + " time: ", parent->average_time);
-                    //log("               kid: " + kid->name + " time: ", kid->average_time);
-                    //exit(0);
+                    log("           Offending nodes:");
+                    log("               parent: " + parent->name + " time: ", parent->average_time);
+                    log("               kid: " + kid->name + " time: ", kid->average_time);
+                    return 0;
                 } else if (!kid->is_attempting_merge){
                     log("           failed merge - no merge attempt - SHOULD NOT OCCUR");
                     log("           Offending nodes:");
                     log("               parent: " + parent->name + " time: ", parent->average_time);
                     log("               kid: " + kid->name + " time: ", kid->average_time);
+                    log("recur -> ", recur);
                     exit(0);
                 }
                 log("           match rejected! - kid attemptin merge");
                 return 0;
             }
   
+
             nodes.insert(nodes.begin(), kid);
+
         }
 
         if (parent->extra_node != nullptr) {
@@ -560,6 +571,8 @@ int check_valid_merge(const master_trace& mt, float next_event_time) {
         if (target_time > next_event_time) {
 
             log("           match rejected! - due to next_event_time");
+            log("           next_event_time was: ", next_event_time);
+            log("           target_time was: ", target_time);
             return 0;
         }
     }
@@ -571,16 +584,17 @@ int check_valid_merge(const master_trace& mt, float next_event_time) {
 
 
 //prev_node is used when creating a new node, since it needs to be tied in to the structure somehow
-node* merge_letter(master_trace &mt, char event_type, std::string name, float event_time, int event_count, node* prev_node, std::string shorthand, float next_event_time) {
+node* merge_letter(master_trace &mt, char event_type, std::string name, float event_time, int event_count, node* prev_node, std::string shorthand, 
+    float next_event_time, int end_node, unique_trace t, int ii, int recursiondepth) {
 
-
+    //log("entering merge letter. depth: ", recursiondepth);
     // break out into closest time node function
     // BFS:
     //     if node_event_type == event_type:
     //     node.time_diff = abs(node.average_time - event_time)
     //     closest_time_node.insert(node)
 
-    //log("???");
+    log("???");
 
     std::vector<node*> nodes;
     nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
@@ -630,10 +644,10 @@ node* merge_letter(master_trace &mt, char event_type, std::string name, float ev
 
     }
 
-    log("sorting");
+    
     std::sort(closest_time_nodes.begin(), closest_time_nodes.end(),
           [](const node* a, const node* b) {
-              return a->time_diff < b->time_diff;
+              return a->time_diff > b->time_diff;
           });
 
 
@@ -653,7 +667,9 @@ node* merge_letter(master_trace &mt, char event_type, std::string name, float ev
     count = 0;
     int merged = 0;
     node* node_ptr = nullptr;
+
     while(!closest_time_nodes.empty()) {
+        log("K?");
 
         count++;
 
@@ -666,14 +682,58 @@ node* merge_letter(master_trace &mt, char event_type, std::string name, float ev
         if (prev_node != nullptr) {
             prev_node->extra_node = node_ptr;
         }
+        //log("gonna try a mergy");
+        merged = check_valid_merge(mt, next_event_time, recursiondepth);
+        //log("merge done. result", merged);
+        // do not try this at home kids
+        if (merged == 0) {
+            log("------");
 
-        merged = check_valid_merge(mt, next_event_time);
+            if(ii+1 == (int)t.events.size()) {
+                if (prev_node != nullptr) {
+                    prev_node->extra_node = nullptr;
+                }
+                return nullptr;
+            }
+            //exit(0);
+
+            float next_event_timee = std::numeric_limits<float>::max();
+
+            int end_nodee = 0;
+            if (ii+1 != t.events.size() - 1) {
+
+                next_event_timee = t.times[ii+2];
+            } else {
+
+                end_nodee = 1;
+            }
+
+            //Here we need to fake update graph, due to only allowing for 1 extra node.
+            //We need to save old data incase merge still fails.
+
+            log("GGGGGGGGG");
+            log("EVENTSIZE: ", (int)t.events.size());
+            log("ii+1=", ii+1);
+            node* res = merge_letter(mt, t.events[ii+1], t.names[ii+1], t.times[ii+1], t.count, node_ptr, t.shorthand, next_event_timee, end_nodee, t, ii+1, recursiondepth+1);
+            log("@@@@@@@@@@");
+            if (res == nullptr) {
+                merged = 0;
+            } else {
+                merged = 1;
+            }
+
+        }
 
         if (prev_node != nullptr) {
             prev_node->extra_node = nullptr;
         }
 
-        if (merged) {  
+        if (merged == 1) {  
+
+            if (recursiondepth) {
+
+                return node_ptr;
+            }
 
             node_ptr->average_time = merge_time(node_ptr->event_count, node_ptr->average_time,
                                                 node_ptr->extra_event_count, node_ptr->extra_average_time);
@@ -700,7 +760,7 @@ node* merge_letter(master_trace &mt, char event_type, std::string name, float ev
                     //log(name);
                     //log(prev_node->next_nodes[i]->event_type);
 
-                    if (prev_node->next_nodes[i]->name == name) {
+                    if (prev_node->next_nodes[i]->creationID == node_ptr->creationID) {
                         already_exists = 1;
                         exists_index = i;
                     }
@@ -732,8 +792,13 @@ node* merge_letter(master_trace &mt, char event_type, std::string name, float ev
 
             }
 
+            if (end_node) {
+                node_ptr->end_count += event_count;
+            }
+
             break;
-        }
+
+        } 
 
         node_ptr->is_attempting_merge = 0;
         node_ptr->extra_event_count   = 0;
@@ -741,6 +806,10 @@ node* merge_letter(master_trace &mt, char event_type, std::string name, float ev
     }
 
     if (merged == 0) {
+
+        if (recursiondepth) {
+            return nullptr;
+        }
 
         merged_node = new node;
         merged_node->creationID = mt.total_node_count;
@@ -755,6 +824,7 @@ node* merge_letter(master_trace &mt, char event_type, std::string name, float ev
         merged_node->average_time        = event_time;
         merged_node->is_attempting_merge = 0;
         merged_node->unique_traces.push_back(shorthand);
+        merged_node->end_count = 0;
 
         if (prev_node != nullptr) {
             prev_node->next_nodes.push_back(merged_node);
@@ -763,6 +833,10 @@ node* merge_letter(master_trace &mt, char event_type, std::string name, float ev
         } else {
             mt.base_nodes.push_back(merged_node);
             log("       Added alternate start with name:" + name);
+        }
+
+        if (end_node) {
+            merged_node->end_count = event_count;
         }
 
     }
@@ -779,13 +853,18 @@ void merge_master_trace(master_trace& mt, unique_trace t) {
 
         float next_event_time = std::numeric_limits<float>::max();
 
+        int end_node = 0;
         if (i != t.events.size() - 1) {
 
-            next_event_time = t.times[i];
+            next_event_time = t.times[i + 1];
+        } else {
+
+            end_node = 1;
         }
 
         log("   merging mastertrace with " + t.names[i]);
-        prev_node = merge_letter(mt, t.events[i], t.names[i], t.times[i], t.count, prev_node, t.shorthand, next_event_time);
+
+        prev_node = merge_letter(mt, t.events[i], t.names[i], t.times[i], t.count, prev_node, t.shorthand, next_event_time, end_node, t, i, 0);
 
     }
 }
@@ -798,7 +877,7 @@ master_trace step_2_build_graph(std::vector<unique_trace> &unique_traces) {
     mt.total_node_count = 0;
     mt.node_to_merge = nullptr;
 
-    std::sort(unique_traces.begin(), unique_traces.end());
+    //std::sort(unique_traces.begin(), unique_traces.end());
 
     //setup first trace in master trace
     unique_trace base_trace = unique_traces[0];
@@ -819,11 +898,14 @@ master_trace step_2_build_graph(std::vector<unique_trace> &unique_traces) {
         new_node->extra_event_count   = 0;
         new_node->extra_average_time  = 0;
         new_node->unique_traces.push_back(base_trace.shorthand);
+        new_node->end_count = 0;
         mt.total_node_count++;
         
         if (last_node != nullptr) {
             new_node->next_nodes.push_back(last_node);
             new_node->next_nodes_counts.push_back(last_node->event_count);
+        } else {
+            new_node->end_count = base_trace.count;
         }
 
         last_node = new_node;
@@ -833,16 +915,22 @@ master_trace step_2_build_graph(std::vector<unique_trace> &unique_traces) {
         }
 
     }
-
-    for (int i = 1; i < unique_traces.size(); i++) {
-
-        log("Mergine trace: " + unique_traces[i].shorthand + " NUMBER: ", i);
+    export_data(mt, 0);
+    //for (int i = 1; i < unique_traces.size(); i++) {
+    for (int i = 1; i < SIZE; i++) {
+        std::string msg = "Mergine trace: " + unique_traces[i].shorthand + " NUMBER: " + std::to_string(i) + " COUNT: " + std::to_string(unique_traces[i].count);
+        log(msg);
         merge_master_trace(mt, unique_traces[i]);
+        log("Trace merge done, exporting");
+        export_data(mt, i);
+
     }
 
     return mt;
       
 }
+
+
 
 
 void swap_node(node* node1, node* pot_node) {
@@ -900,6 +988,8 @@ int inner_merge_pass(node* node1, master_trace& mt) {
             pot_node->extra_event_count   = 0;
             pot_node->extra_average_time  = 0;
 
+            pot_node->end_count = node1->end_count + parent->end_count;
+
             for (int i = 0; i < node1->prev_nodes.size();   i++) { node1->prev_nodes[i]->extra_node   = pot_node; }
             for (int i = 0; i < parent->prev_nodes.size(); i++)  { parent->prev_nodes[i]->extra_node = pot_node; }
 
@@ -916,7 +1006,7 @@ int inner_merge_pass(node* node1, master_trace& mt) {
             pot_node->unique_traces.insert(pot_node->unique_traces.begin(), 
                                            node1->unique_traces.begin(), node1->unique_traces.end());
             log("CheckingValidMerge");
-            int valid = check_valid_merge(mt, std::numeric_limits<float>::max());
+            int valid = check_valid_merge(mt, std::numeric_limits<float>::max(), 0);
 
             /*
 
@@ -1024,7 +1114,17 @@ void set_prev_nodes(master_trace& mt) {
 
             node* kid = parent->next_nodes[i];
 
-            kid->prev_nodes.insert(kid->prev_nodes.begin(), parent);
+            int already_exists = 0;
+
+            for (node* n : kid->prev_nodes) {
+                if (n->creationID == parent->creationID) {
+                    already_exists = 1;
+                }
+            }
+
+            if (!already_exists) {
+                kid->prev_nodes.insert(kid->prev_nodes.begin(), parent);
+            }
 
             nodes.insert(nodes.begin(), kid);
         }
@@ -1049,32 +1149,82 @@ void main_algorithm(event_log &data, std::string name) {
 
     //Step 1
     std::vector<unique_trace> unique_traces = step_1_calc_unique_traces(data.traces);
+    std::sort(unique_traces.begin(), unique_traces.end());
 
     log("Unique Traces created: ", (int)unique_traces.size());
 
-    for (int i = 0; i < unique_traces.size(); i++) {
+    for (int i = 0; i < SIZE; i++) {
+    
 
         unique_trace &ut = unique_traces[i];
 
         log("ShortHand: " + ut.shorthand);
+
+        for (std::string name : ut.names) {
+
+            log(name);
+        }
 
     }
  
 
     //Step 2
     master_trace mt = step_2_build_graph(unique_traces);
+    log("step2 done");
+
+    set_prev_nodes(mt);
+
+    std::vector<node*> nodes;
+    node* parent = nullptr;
+    nodes.insert(nodes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
+
+    while(!nodes.empty()) {
+
+
+
+        parent = nodes.back();
+        nodes.pop_back();
+        //log("GOING THROUGH: " +  parent->name + " PREV NODES ARE: ");
+        int sum = 0;
+        for (node* prev : parent->prev_nodes) {
+            //log(prev->name);
+            for (int i = 0; i < prev->next_nodes.size(); i++) {
+                node* prev_next = prev->next_nodes[i];
+                //log("?: " + prev_next->name);
+                if (prev->next_nodes[i]->creationID == parent->creationID) {
+                    sum += prev->next_nodes_counts[i];
+                }
+            }
+        }
+
+        if (sum != parent->event_count) {
+            log("");
+            log("ERROR: " + parent->name);
+            log("SUM: ", sum);
+            log("eventcount: ", parent->event_count);
+        }
+
+        for (int i = 0; i < parent->next_nodes.size(); i++) {
+
+            node* kid = parent->next_nodes[i];
+
+            
+
+            nodes.insert(nodes.begin(), kid);
+        }
+    }
 
     //Step 3
     //step_3_clean_graph(mt);
 
     // Not part of algorithm, just outputting data.
-    float time_diff = calc_time_diff(mt, data.events, data.traces);
+    //float time_diff = calc_time_diff(mt, data.events, data.traces);
 
-    log("-------------------------------");
-    log(name + " TIME_DIFF: ", time_diff);
-    log("-------------------------------");
+    //log("-------------------------------");
+    //log(name + " TIME_DIFF: ", time_diff);
+    //log("-------------------------------");
 
-    export_data(mt);
+    export_data(mt,9999);
     
 }
        
