@@ -11,3 +11,4 @@ Request For Payment SUBMITTED by EMPLOYEE9 | 10 days 11:59:24
 Request For Payment APPROVED by ADMINISTRATION10 | 10 days 14:48:41
 Request For Payment FINAL_APPROVED by SUPERVISOR11 | 12 days 08:15:48
 Request Payment12 | 16 days 08:52:44
+Payment Handled13 | 20 days 05:05:01

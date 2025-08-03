@@ -13,6 +13,8 @@ Request For Payment REJECTED by EMPLOYEE7,Request For Payment SUBMITTED by EMPLO
 Request For Payment SUBMITTED by EMPLOYEE9,Request For Payment APPROVED by ADMINISTRATION10,202
 Request For Payment APPROVED by ADMINISTRATION10,Request For Payment FINAL_APPROVED by SUPERVISOR11,202
 Request For Payment FINAL_APPROVED by SUPERVISOR11,Request Payment12,202
+Request Payment12,Payment Handled13,202
 Start:Request For Payment SUBMITTED by EMPLOYEE0,6241
 End:Request For Payment REJECTED by EMPLOYEE7,343
 End:Payment Handled4,5696
+End:Payment Handled13,202

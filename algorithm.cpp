@@ -24,7 +24,7 @@ void log(std::string s, char c)  { std::cerr << "LOG: " << s << c << std::endl; 
 void log(std::string s, int i)   { s += std::to_string(i); log(s); }
 void log(std::string s, float i) { s += std::to_string(i); log(s); }
 
-#define SIZE 10
+#define SIZE 89
 
 struct event {
 
@@ -109,6 +109,7 @@ struct master_trace {
     int node_to_merge;
     int last_count;
     int recursion = 0;
+    int has_recursed = 0;
 
 };
 
@@ -260,10 +261,9 @@ std::string seconds_to_timedelta_string(float seconds) {
 }
 
 //done
-void export_data(master_trace& mt, int ii) {
-
-    std::string conn_out = "connections" + std::to_string(ii) + ".txt";
-    std::string time_out = "timestamps"  + std::to_string(ii) + ".txt";
+void export_data(master_trace& mt, std::string ii) {
+    std::string conn_out = "connections" + ii + ".txt";
+    std::string time_out = "timestamps"  + ii + ".txt";
 
     std::ofstream connections(conn_out);
     std::ofstream timestamps(time_out);
@@ -286,7 +286,7 @@ void export_data(master_trace& mt, int ii) {
 
         parent_index = node_indexes.back();
         node_indexes.pop_back();
-	node& parent = mt.nodes_container[parent_index];
+	    node& parent = mt.nodes_container[parent_index];
 
         std::string parent_s = parent.name + std::to_string(parent.creationID);
         std::string timestamp = seconds_to_timedelta_string(parent.average_time);
@@ -357,6 +357,13 @@ void export_data(master_trace& mt, int ii) {
 
     connections.close();
     timestamps.close();
+
+}
+
+void export_data(master_trace& mt, int ii) {
+
+    std::string s = std::to_string(ii);
+    export_data(mt, s);
 
 }
 
@@ -526,9 +533,12 @@ int check_for_loops(master_trace &mt) {
 
 //extra node is solved by check
 //done
-int check_valid_merge(master_trace& mt) {
+int check_valid_merge(master_trace& mt, float next_time) {
 
     if (check_for_loops(mt)) { return -1; }
+
+    int check_next_time = 1;
+    if (next_time < 0) { check_next_time = 0; }
 
     std::vector<int> node_indexes;
     node_indexes.insert(node_indexes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
@@ -561,24 +571,34 @@ int check_valid_merge(master_trace& mt) {
             if (kid_time < parent_time) {
 
                 if (parent.is_attempting_merge) {
-                    log("           match rejected! - parent attemptin merge");
+                    //log("           match rejected! - parent attemptin merge");
                     
-                    log("           Offending nodes:");
-                    log("               parent: " + parent.name + " time: ", parent_time);
-                    log("               kid: " + kid.name + " time: ", kid_time);
+                    //log("           Offending nodes:");
+                    //log("               parent: " + parent.name + " time: ", parent_time);
+                    //log("               kid: " + kid.name + " time: ", kid_time);
                     return 0;
+
                 } else if (!kid.is_attempting_merge){
-		    if (mt.recursion) {
-			log("		match rejected. Would have failed but we are recursing");
-			return 0;
-		    }
+
+		            if (mt.recursion || mt.has_recursed) {
+    			        //log("		match rejected. Would have failed but we are recursing");
+    			        return 0;
+		            }
+
                     log("           failed merge - no merge attempt - SHOULD NOT OCCUR");
                     log("           Offending nodes:");
-                    log("               parent: " + parent.name + " time: ", parent_time);
-                    log("               kid: " + kid.name + " time: ", kid_time);
+                    log("               parent: " + parent.name + std::to_string(parent.creationID) + " time: ", parent_time);
+                    log("               kid: " + kid.name + std::to_string(kid.creationID) + " time: ", kid_time);
+                    export_data(mt, "END");
                     exit(0);
                 }
-                log("           match rejected! - kid attemptin merge");
+
+                //log("           match rejected! - kid attemptin merge");
+                return 0;
+            }
+
+            if (check_next_time && parent.is_attempting_merge && parent_time > next_time) {
+                //log("rejected because next time");
                 return 0;
             }
   
@@ -600,9 +620,9 @@ int check_valid_merge(master_trace& mt) {
                                   kid.extra_event_count, kid.extra_average_time);
 
             if (kid_time < parent.average_time) {
-                log("           match rejected via extra path - hmm!");
-                log("               parent: " + parent.name + " time: ", parent.average_time);
-                log("               kid: " + kid.name + " time: ", kid_time);
+                //log("           match rejected via extra path - hmm!");
+                //log("               parent: " + parent.name + " time: ", parent.average_time);
+                //log("               kid: " + kid.name + " time: ", kid_time);
                 return 0;
             }
         }
@@ -625,10 +645,11 @@ std::vector<int> get_closest_nodes(master_trace &mt, char event_type, float even
 
     int count = 0;
     while(!node_indexes.empty()) {
+
         if (count > 1000) { 
-	    export_data(mt, 999);
+	        export_data(mt, 999);
             log("        ERROR - added to many closest nodes, something must be wrong - Exiting");  
-	    exit(0); 
+	        exit(0); 
         }
         
         parent_index = node_indexes.back();
@@ -651,16 +672,16 @@ std::vector<int> get_closest_nodes(master_trace &mt, char event_type, float even
             if (!already_exists) { 
                 count++;
 
-		int place = 0;
-		for (int i : closest_indexes) {
+		        int place = 0;
+		        for (int i : closest_indexes) {
 
-			float other_diff = mt.nodes_container[i].time_diff;			
-			if (parent.time_diff < other_diff) {
-				break;
-			}
+        			float other_diff = mt.nodes_container[i].time_diff;			
+        			if (parent.time_diff > other_diff) {
+        				break;
+        			}
 			
-			place++;
-		}
+			        place++;
+		        }
 
                 closest_indexes.insert(closest_indexes.begin() + place, parent_index);
             }
@@ -670,6 +691,8 @@ std::vector<int> get_closest_nodes(master_trace &mt, char event_type, float even
         node_indexes.insert(node_indexes.begin(), parent.next_nodes.begin(), parent.next_nodes.end());
 
     }
+
+
 
     return closest_indexes;
 }
@@ -704,12 +727,12 @@ int merge_node(master_trace& mt, int merge_index, int prev_index, std::string sh
         }
 
         if (already_exists) {
-            log("       prev node exists and has this name already. only updating edge count");
+            //log("       prev node exists and has this name already. only updating edge count");
             prev_n.next_nodes_counts[exists_index] += n.extra_event_count;
         } else {
             prev_n.next_nodes.push_back(merge_index);
             prev_n.next_nodes_counts.push_back(n.extra_event_count);
-            log("       MERGE - prev node existed. added to " + prev_n.name + "'s next nodes");
+            //log("       MERGE - prev node existed. added to " + prev_n.name + "'s next nodes");
         }
     } 
     
@@ -722,13 +745,15 @@ int merge_node(master_trace& mt, int merge_index, int prev_index, std::string sh
     n.extra_average_time  = 0;
     n.unique_traces.push_back(shorthand);
 
+    //log("Merged node: " + n.name, n.creationID);
+
     return merge_index;
 }
 
 //done
 int add_new_node(master_trace& mt, const unique_trace& ut, int i, int prev_node_index, int end_node) {
 
-    log("index I: ", i);
+    //log("NEW NODE CREATED - NAME: " + ut.names[i], mt.total_node_count);
 	
     node new_node;
     new_node.creationID = mt.total_node_count;
@@ -762,7 +787,7 @@ int add_new_node(master_trace& mt, const unique_trace& ut, int i, int prev_node_
         mt.nodes_container[prev_node_index].next_nodes_counts.push_back(new_node.event_count);
     } else {
         mt.base_nodes.push_back(new_node.creationID);
-        log("       Added alternate start with name:" + new_node.name);
+        //log("       Added alternate start with name:" + new_node.name);
     }
 
 
@@ -780,6 +805,8 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
     std::string shorthand = t.shorthand;
 
     int end_node = trace_index == t.events.size() - 1 ? 1 : 0;
+    float next_time = -1;
+    if (!end_node) { next_time = t.times[trace_index + 1]; }
 
     std::vector<int> closest_indexes = get_closest_nodes(mt, event_type, event_time);
 
@@ -788,56 +815,71 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
     int has_merged = 0;
     int node_index = -1;
 
-    log("prev_node_index: ", prev_node_index);
+    //log("prev_node_index: ", prev_node_index);
 
+    int no_matching_nodes = closest_indexes.size();
 
     while(!closest_indexes.empty()) {
 
         node_index = closest_indexes.back();
         closest_indexes.pop_back();
-	node& node_ptr = mt.nodes_container[node_index];
+	    node& node_ptr = mt.nodes_container[node_index];
         node_ptr.is_attempting_merge = 1;
         node_ptr.extra_event_count   = event_count;
         node_ptr.extra_average_time  = event_time;
 
         if (prev_node_index != -1) {
-	    mt.nodes_container[prev_node_index].extra_node = node_index;
+	       mt.nodes_container[prev_node_index].extra_node = node_index;
         }
 
-        can_merge = check_valid_merge(mt);
+        can_merge = check_valid_merge(mt, next_time);
 
-	log("can merge: ", can_merge);
+    	//log("can merge: ", can_merge);
 
-	if (can_merge == 1) {
+    	if (can_merge == 1) {
 
            merged_index = merge_node(mt, node_index, prev_node_index, shorthand, end_node);
-	   has_merged = 1;
+    	   has_merged = 1;
 
-	   break;
-	
-	} else if (can_merge == 0 && !end_node) {
+    	   break;
+    	
+    	} else if (can_merge == 0 && !end_node) {
            
-	    //copy mastertrace
-	    master_trace mt_copy = mt;
-	    mt_copy.recursion = 1;
-	    //merge node
-	    merge_node(mt_copy, node_index, prev_node_index, shorthand, end_node);
-	    //recursion
-	    log("R E C U R S I O N !-----------------------------------------------------------------");
+    	    //copy mastertrace
+    	    master_trace mt_copy = mt;
+    	    mt_copy.recursion = 1;
+    	    //merge node
+    	    merge_node(mt_copy, node_index, prev_node_index, shorthand, end_node);
+    	    //recursion
+    	    //log("R E C U R S I O N !-----------------------------------------------------------------");
             int res_index = merge_letter(mt_copy, t, node_index, trace_index + 1);
-	    log("E N D OF R E C U R S I O N&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"); 
+    	    //log("E N D OF R E C U R S I O N&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"); 
 
             if (res_index != -1) {
-            
-                merged_index = merge_node(mt, node_index, prev_node_index, shorthand, end_node);
-		has_merged = 1;
+                
+                if (mt.recursion == 0) {
+                    
+                    log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    log("RECURSION SUCCESS!!!!!!!!!!!!!!!!!!!!!!");
+                    log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    
+                }
 
-		break;
+                merged_index = merge_node(mt, node_index, prev_node_index, shorthand, end_node);
+    		    has_merged = 1;
+                mt.has_recursed = 1;
+
+    		    break;
             }
+
         }
 
         if (prev_node_index != -1) {
-	    mt.nodes_container[prev_node_index].extra_node = -1;
+	       mt.nodes_container[prev_node_index].extra_node = -1;
         }
 
         node_ptr.is_attempting_merge = 0;
@@ -849,10 +891,10 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
 
         merged_index = add_new_node(mt, t, trace_index, prev_node_index, end_node);
 
-	if (mt.recursion) { 
-		merged_index = -1; 
-		log("recursion failed");
-	}
+    	if (mt.recursion) { 
+    		merged_index = -1; 
+    		//log("recursion failed");
+    	}
 
     }
 
@@ -861,15 +903,21 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
 
 
 //done
-void merge_master_trace(master_trace& mt, unique_trace t) {
+void merge_master_trace(master_trace& mt, unique_trace t, int detailed) {
 
     int prev_node_index = -1;
-
+    mt.has_recursed = 0;
     for (int i = 0; i < t.events.size(); i++) {
+
 
         log("   merging mastertrace with " + t.names[i]);
 
         prev_node_index = merge_letter(mt, t, prev_node_index, i);
+
+        if (detailed) {
+            std::string s = "STEP" + std::to_string(i + 1);
+            export_data(mt, s);
+        }
 
     }
 }
@@ -905,9 +953,14 @@ master_trace step_2_build_graph(std::vector<unique_trace> &unique_traces) {
     //for (int i = 1; i < unique_traces.size(); i++) {
     log("going through remaining traces");
     for (int i = 1; i < SIZE; i++) {
+        int detailed = 0;
+        if (i == 11) { detailed = 1; }
+        log("");
+        log("");
+        log("");
         std::string msg = "Mergine trace: " + unique_traces[i].shorthand + " NUMBER: " + std::to_string(i) + " COUNT: " + std::to_string(unique_traces[i].count);
         log(msg);
-        merge_master_trace(mt, unique_traces[i]);
+        merge_master_trace(mt, unique_traces[i], detailed);
         log("Trace merge done, exporting");
         export_data(mt, i);
 
@@ -1152,11 +1205,13 @@ void main_algorithm(event_log &data, std::string name) {
 
         unique_trace &ut = unique_traces[i];
 
-        log("ShortHand: " + ut.shorthand);
+        log("ShortHand: " + ut.shorthand + " i: ", i);
 
-        for (std::string name : ut.names) {
+        for (int i = 0; i < ut.names.size(); i++) {
 
-            log(name);
+            std::string name = ut.names[i];
+            float time = ut.times[i];
+            log(name + ": ", time);
         }
 
     }
