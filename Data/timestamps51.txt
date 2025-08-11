@@ -1,0 +1,85 @@
+Request For Payment SAVED by EMPLOYEE15 | 0 days 00:00:00
+Request For Payment SUBMITTED by EMPLOYEE0 | 0 days 00:00:00
+Request For Payment FINAL_APPROVED by SUPERVISOR47 | 25 days 11:08:37
+Payment Handled64 | 111 days 22:22:06
+Request For Payment REJECTED by MISSING65 | 27 days 01:49:59
+Request For Payment SUBMITTED by EMPLOYEE33 | 30 days 12:28:50
+Request For Payment FINAL_APPROVED by SUPERVISOR34 | 30 days 12:29:25
+Request For Payment REJECTED by MISSING66 | 31 days 01:31:03
+Request For Payment SUBMITTED by EMPLOYEE20 | 37 days 18:29:30
+Request For Payment FINAL_APPROVED by SUPERVISOR22 | 38 days 23:40:22
+Request For Payment APPROVED by ADMINISTRATION21 | 38 days 04:07:25
+Request Payment23 | 39 days 11:45:50
+Payment Handled74 | 59 days 07:30:59
+Payment Handled24 | 41 days 06:10:34
+Request Payment48 | 29 days 07:56:18
+Request For Payment APPROVED by SUPERVISOR35 | 3 days 20:36:18
+Request For Payment FINAL_APPROVED by DIRECTOR36 | 7 days 09:47:17
+Request Payment3 | 7 days 16:17:38
+Payment Handled4 | 11 days 04:50:30
+Request Payment12 | 18 days 06:26:40
+Payment Handled13 | 21 days 22:37:40
+Request For Payment REJECTED by PRE_APPROVER37 | 4 days 14:26:37
+Request For Payment REJECTED by EMPLOYEE54 | 5 days 14:16:01
+Request For Payment SUBMITTED by EMPLOYEE52 | 6 days 05:02:19
+Request For Payment APPROVED by ADMINISTRATION10 | 12 days 09:17:48
+Request For Payment APPROVED by BUDGET OWNER14 | 14 days 16:19:30
+Request For Payment APPROVED by SUPERVISOR75 | 16 days 08:59:25
+Request For Payment FINAL_APPROVED by DIRECTOR76 | 24 days 01:52:50
+Request For Payment FINAL_APPROVED by SUPERVISOR11 | 15 days 15:19:46
+Request For Payment REJECTED by ADMINISTRATION31 | 12 days 06:17:17
+Request For Payment FINAL_APPROVED by SUPERVISOR51 | 6 days 05:52:08
+Request For Payment REJECTED by MISSING57 | 8 days 12:24:52
+Request For Payment SAVED by EMPLOYEE81 | 9 days 05:54:00
+Request For Payment SUBMITTED by EMPLOYEE55 | 5 days 14:22:51
+Request For Payment APPROVED by PRE_APPROVER56 | 5 days 14:23:05
+Request For Payment REJECTED by EMPLOYEE32 | 12 days 19:27:21
+Request For Payment SUBMITTED by EMPLOYEE17 | 30 days 01:03:23
+Request For Payment REJECTED by ADMINISTRATION18 | 30 days 14:28:35
+Request For Payment SUBMITTED by EMPLOYEE67 | 49 days 06:05:33
+Request For Payment APPROVED by ADMINISTRATION82 | 78 days 10:27:58
+Request For Payment FINAL_APPROVED by SUPERVISOR83 | 80 days 04:37:29
+Request Payment84 | 80 days 22:38:47
+Request For Payment REJECTED by ADMINISTRATION68 | 49 days 09:38:26
+Request For Payment REJECTED by EMPLOYEE69 | 53 days 21:15:20
+Request For Payment SUBMITTED by EMPLOYEE70 | 56 days 20:42:09
+Request For Payment APPROVED by ADMINISTRATION71 | 56 days 20:42:15
+Request For Payment FINAL_APPROVED by SUPERVISOR72 | 57 days 10:14:03
+Request Payment73 | 58 days 23:12:50
+Request For Payment REJECTED by EMPLOYEE19 | 34 days 16:49:47
+Request For Payment SUBMITTED by EMPLOYEE44 | 23 days 02:48:40
+Request For Payment APPROVED by ADMINISTRATION45 | 23 days 03:15:37
+Request For Payment APPROVED by BUDGET OWNER46 | 23 days 23:35:04
+Request For Payment SUBMITTED by EMPLOYEE39 | 13 days 12:05:42
+Request For Payment APPROVED by ADMINISTRATION40 | 13 days 13:42:27
+Request For Payment REJECTED by SUPERVISOR16 | 2 days 08:32:51
+Request For Payment REJECTED by EMPLOYEE7 | 4 days 04:37:47
+Request For Payment SUBMITTED by EMPLOYEE49 | 4 days 13:31:10
+Request For Payment APPROVED by ADMINISTRATION50 | 4 days 16:15:30
+Request For Payment REJECTED by SUPERVISOR38 | 6 days 05:22:56
+Request For Payment REJECTED by EMPLOYEE53 | 7 days 06:51:26
+Request For Payment SUBMITTED by EMPLOYEE77 | 8 days 11:16:31
+Request For Payment APPROVED by ADMINISTRATION78 | 8 days 22:29:51
+Request For Payment APPROVED by BUDGET OWNER79 | 9 days 00:11:46
+Request For Payment REJECTED by SUPERVISOR80 | 9 days 19:42:19
+Request For Payment SUBMITTED by EMPLOYEE41 | 20 days 00:52:13
+Request For Payment REJECTED by ADMINISTRATION42 | 21 days 14:31:26
+Request For Payment REJECTED by EMPLOYEE43 | 23 days 00:03:13
+Request For Payment SUBMITTED by EMPLOYEE9 | 11 days 13:33:58
+Request For Payment REJECTED by PRE_APPROVER25 | 0 days 00:00:42
+Request For Payment REJECTED by EMPLOYEE26 | 1 days 10:16:05
+Request For Payment SUBMITTED by EMPLOYEE27 | 2 days 10:32:14
+Request For Payment APPROVED by PRE_APPROVER28 | 2 days 15:11:49
+Request For Payment APPROVED by PRE_APPROVER8 | 0 days 15:01:38
+Request For Payment REJECTED by ADMINISTRATION6 | 0 days 17:51:27
+Request For Payment FINAL_APPROVED by SUPERVISOR2 | 4 days 04:03:11
+Request For Payment REJECTED by MISSING30 | 4 days 06:43:31
+Request For Payment SUBMITTED by EMPLOYEE60 | 91 days 05:28:14
+Request For Payment APPROVED by PRE_APPROVER61 | 91 days 05:29:45
+Request For Payment FINAL_APPROVED by SUPERVISOR62 | 92 days 16:55:46
+Request Payment63 | 95 days 01:02:21
+Request For Payment SUBMITTED by EMPLOYEE58 | 4 days 13:34:04
+Request For Payment APPROVED by PRE_APPROVER59 | 4 days 16:59:33
+Request For Payment APPROVED by ADMINISTRATION1 | 0 days 18:58:57
+Request For Payment REJECTED by BUDGET OWNER29 | 2 days 00:07:47
+Request For Payment APPROVED by BUDGET OWNER5 | 3 days 17:30:58

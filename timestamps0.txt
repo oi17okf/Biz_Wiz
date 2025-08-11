@@ -1,5 +1,5 @@
-Request For Payment SUBMITTED by EMPLOYEE0 | 0 days 00:00:00
-Request For Payment APPROVED by ADMINISTRATION1 | 0 days 15:27:38
-Request For Payment FINAL_APPROVED by SUPERVISOR2 | 3 days 10:48:59
-Request Payment3 | 6 days 14:40:50
-Payment Handled4 | 10 days 01:23:27
+Declaration SUBMITTED by EMPLOYEE0 | 0 days 00:00:00
+Declaration APPROVED by ADMINISTRATION1 | 1 days 08:11:49
+Declaration FINAL_APPROVED by SUPERVISOR2 | 3 days 06:54:00
+Request Payment3 | 5 days 22:40:38
+Payment Handled4 | 9 days 09:03:09

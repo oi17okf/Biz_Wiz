@@ -4,7 +4,7 @@ CC_DESKTOP = g++
 CFLAGS = -Wall -std=c++11 -Wno-reorder -Wno-sign-compare
 
 # Flags for desktop
-LFLAGS_DESKTOP = -lwinmm -g
+LFLAGS_DESKTOP = -lwinmm -pg -g
 
 # Files
 SRC = algorithm.cpp tinyxml2.cpp

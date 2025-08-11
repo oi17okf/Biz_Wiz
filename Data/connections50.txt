@@ -1,0 +1,160 @@
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment APPROVED by ADMINISTRATION1,4961
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment FINAL_APPROVED by SUPERVISOR2,616
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment REJECTED by ADMINISTRATION6,734
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment APPROVED by PRE_APPROVER8,369
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment REJECTED by PRE_APPROVER25,24
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment REJECTED by SUPERVISOR16,36
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment REJECTED by PRE_APPROVER37,22
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment APPROVED by SUPERVISOR35,11
+Request For Payment SUBMITTED by EMPLOYEE0,Request For Payment FINAL_APPROVED by SUPERVISOR47,3
+Request For Payment FINAL_APPROVED by SUPERVISOR47,Request Payment48,16
+Request For Payment FINAL_APPROVED by SUPERVISOR47,Request For Payment REJECTED by MISSING65,3
+Request For Payment FINAL_APPROVED by SUPERVISOR47,Payment Handled64,2
+Request For Payment REJECTED by MISSING65,Request For Payment SUBMITTED by EMPLOYEE33,3
+Request For Payment SUBMITTED by EMPLOYEE33,Request For Payment FINAL_APPROVED by SUPERVISOR34,21
+Request For Payment FINAL_APPROVED by SUPERVISOR34,Request Payment23,18
+Request For Payment FINAL_APPROVED by SUPERVISOR34,Request For Payment REJECTED by MISSING66,3
+Request For Payment REJECTED by MISSING66,Request For Payment SUBMITTED by EMPLOYEE20,3
+Request For Payment SUBMITTED by EMPLOYEE20,Request For Payment APPROVED by ADMINISTRATION21,28
+Request For Payment SUBMITTED by EMPLOYEE20,Request For Payment FINAL_APPROVED by SUPERVISOR22,3
+Request For Payment FINAL_APPROVED by SUPERVISOR22,Request Payment23,31
+Request For Payment APPROVED by ADMINISTRATION21,Request For Payment FINAL_APPROVED by SUPERVISOR22,28
+Request Payment23,Payment Handled24,47
+Request Payment23,Payment Handled74,2
+Request Payment48,Payment Handled24,18
+Request For Payment APPROVED by SUPERVISOR35,Request For Payment FINAL_APPROVED by DIRECTOR36,35
+Request For Payment FINAL_APPROVED by DIRECTOR36,Request Payment12,28
+Request For Payment FINAL_APPROVED by DIRECTOR36,Request Payment3,7
+Request Payment3,Payment Handled4,5740
+Request Payment12,Payment Handled13,466
+Request For Payment REJECTED by PRE_APPROVER37,Request For Payment REJECTED by EMPLOYEE32,16
+Request For Payment REJECTED by PRE_APPROVER37,Request For Payment REJECTED by EMPLOYEE54,6
+Request For Payment REJECTED by EMPLOYEE54,Request For Payment SUBMITTED by EMPLOYEE55,6
+Request For Payment REJECTED by EMPLOYEE54,Request For Payment SAVED by EMPLOYEE81,2
+Request For Payment REJECTED by EMPLOYEE54,Request For Payment SUBMITTED by EMPLOYEE52,1
+Request For Payment SUBMITTED by EMPLOYEE52,Request For Payment FINAL_APPROVED by SUPERVISOR51,8
+Request For Payment SUBMITTED by EMPLOYEE52,Request For Payment REJECTED by ADMINISTRATION31,1
+Request For Payment REJECTED by ADMINISTRATION31,Request For Payment REJECTED by EMPLOYEE32,21
+Request For Payment FINAL_APPROVED by SUPERVISOR51,Request Payment12,8
+Request For Payment FINAL_APPROVED by SUPERVISOR51,Request Payment3,13
+Request For Payment FINAL_APPROVED by SUPERVISOR51,Request For Payment REJECTED by MISSING57,6
+Request For Payment SUBMITTED by EMPLOYEE55,Request For Payment APPROVED by PRE_APPROVER56,6
+Request For Payment APPROVED by PRE_APPROVER56,Request For Payment FINAL_APPROVED by SUPERVISOR51,6
+Request For Payment REJECTED by EMPLOYEE32,Request For Payment SUBMITTED by EMPLOYEE33,18
+Request For Payment REJECTED by EMPLOYEE32,Request For Payment SUBMITTED by EMPLOYEE39,16
+Request For Payment REJECTED by EMPLOYEE32,Request For Payment SUBMITTED by EMPLOYEE44,6
+Request For Payment REJECTED by EMPLOYEE32,Request For Payment SUBMITTED by EMPLOYEE17,2
+Request For Payment SUBMITTED by EMPLOYEE17,Request For Payment REJECTED by ADMINISTRATION18,30
+Request For Payment REJECTED by ADMINISTRATION18,Request For Payment REJECTED by EMPLOYEE19,30
+Request For Payment REJECTED by ADMINISTRATION18,Request For Payment SUBMITTED by EMPLOYEE67,1
+Request For Payment SUBMITTED by EMPLOYEE67,Request For Payment REJECTED by ADMINISTRATION68,2
+Request For Payment SUBMITTED by EMPLOYEE67,Request For Payment APPROVED by ADMINISTRATION82,1
+Request For Payment APPROVED by ADMINISTRATION82,Request For Payment FINAL_APPROVED by SUPERVISOR83,1
+Request For Payment FINAL_APPROVED by SUPERVISOR83,Request Payment84,1
+Request Payment84,Payment Handled64,1
+Request For Payment REJECTED by ADMINISTRATION68,Request For Payment REJECTED by EMPLOYEE69,2
+Request For Payment REJECTED by EMPLOYEE69,Request For Payment SUBMITTED by EMPLOYEE70,2
+Request For Payment SUBMITTED by EMPLOYEE70,Request For Payment APPROVED by ADMINISTRATION71,2
+Request For Payment APPROVED by ADMINISTRATION71,Request For Payment FINAL_APPROVED by SUPERVISOR72,2
+Request For Payment FINAL_APPROVED by SUPERVISOR72,Request Payment73,2
+Request Payment73,Payment Handled74,2
+Request For Payment REJECTED by EMPLOYEE19,Request For Payment SUBMITTED by EMPLOYEE20,28
+Request For Payment REJECTED by EMPLOYEE19,Request For Payment SUBMITTED by EMPLOYEE67,2
+Request For Payment SUBMITTED by EMPLOYEE44,Request For Payment APPROVED by ADMINISTRATION45,16
+Request For Payment APPROVED by ADMINISTRATION45,Request For Payment APPROVED by BUDGET OWNER46,10
+Request For Payment APPROVED by ADMINISTRATION45,Request For Payment FINAL_APPROVED by SUPERVISOR47,8
+Request For Payment APPROVED by BUDGET OWNER46,Request For Payment FINAL_APPROVED by SUPERVISOR47,10
+Request For Payment SUBMITTED by EMPLOYEE39,Request For Payment APPROVED by ADMINISTRATION40,18
+Request For Payment SUBMITTED by EMPLOYEE39,Request For Payment APPROVED by ADMINISTRATION45,2
+Request For Payment APPROVED by ADMINISTRATION40,Request For Payment APPROVED by BUDGET OWNER14,17
+Request For Payment APPROVED by ADMINISTRATION40,Request For Payment FINAL_APPROVED by SUPERVISOR11,1
+Request For Payment FINAL_APPROVED by SUPERVISOR11,Request Payment12,430
+Request For Payment APPROVED by BUDGET OWNER14,Request For Payment FINAL_APPROVED by SUPERVISOR11,185
+Request For Payment APPROVED by BUDGET OWNER14,Request For Payment APPROVED by SUPERVISOR75,2
+Request For Payment APPROVED by SUPERVISOR75,Request For Payment FINAL_APPROVED by DIRECTOR76,2
+Request For Payment FINAL_APPROVED by DIRECTOR76,Request Payment48,2
+Request For Payment REJECTED by SUPERVISOR16,Request For Payment REJECTED by EMPLOYEE7,105
+Request For Payment REJECTED by SUPERVISOR16,Request For Payment REJECTED by EMPLOYEE32,20
+Request For Payment REJECTED by SUPERVISOR16,Request For Payment REJECTED by EMPLOYEE54,1
+Request For Payment REJECTED by EMPLOYEE7,Request For Payment SUBMITTED by EMPLOYEE9,426
+Request For Payment REJECTED by EMPLOYEE7,Request For Payment SUBMITTED by EMPLOYEE17,26
+Request For Payment REJECTED by EMPLOYEE7,Request For Payment SUBMITTED by EMPLOYEE41,12
+Request For Payment REJECTED by EMPLOYEE7,Request For Payment SUBMITTED by EMPLOYEE49,11
+Request For Payment REJECTED by EMPLOYEE7,Request For Payment SUBMITTED by EMPLOYEE39,2
+Request For Payment SUBMITTED by EMPLOYEE49,Request For Payment APPROVED by ADMINISTRATION50,14
+Request For Payment APPROVED by ADMINISTRATION50,Request For Payment FINAL_APPROVED by SUPERVISOR51,8
+Request For Payment APPROVED by ADMINISTRATION50,Request For Payment FINAL_APPROVED by SUPERVISOR11,3
+Request For Payment APPROVED by ADMINISTRATION50,Request For Payment REJECTED by SUPERVISOR38,3
+Request For Payment REJECTED by SUPERVISOR38,Request For Payment REJECTED by EMPLOYEE32,19
+Request For Payment REJECTED by SUPERVISOR38,Request For Payment REJECTED by EMPLOYEE53,13
+Request For Payment REJECTED by SUPERVISOR38,Request For Payment SUBMITTED by EMPLOYEE39,2
+Request For Payment REJECTED by EMPLOYEE53,Request For Payment SUBMITTED by EMPLOYEE9,3
+Request For Payment REJECTED by EMPLOYEE53,Request For Payment SUBMITTED by EMPLOYEE77,2
+Request For Payment REJECTED by EMPLOYEE53,Request For Payment SUBMITTED by EMPLOYEE17,2
+Request For Payment SUBMITTED by EMPLOYEE77,Request For Payment APPROVED by ADMINISTRATION78,2
+Request For Payment APPROVED by ADMINISTRATION78,Request For Payment APPROVED by BUDGET OWNER79,2
+Request For Payment APPROVED by BUDGET OWNER79,Request For Payment REJECTED by SUPERVISOR80,2
+Request For Payment REJECTED by SUPERVISOR80,Request For Payment REJECTED by EMPLOYEE32,2
+Request For Payment REJECTED by SUPERVISOR80,Request For Payment SUBMITTED by EMPLOYEE9,1
+Request For Payment SUBMITTED by EMPLOYEE41,Request For Payment REJECTED by ADMINISTRATION42,12
+Request For Payment REJECTED by ADMINISTRATION42,Request For Payment REJECTED by EMPLOYEE43,15
+Request For Payment REJECTED by EMPLOYEE43,Request For Payment SUBMITTED by EMPLOYEE44,10
+Request For Payment SUBMITTED by EMPLOYEE9,Request For Payment APPROVED by ADMINISTRATION10,412
+Request For Payment SUBMITTED by EMPLOYEE9,Request For Payment REJECTED by ADMINISTRATION31,20
+Request For Payment APPROVED by ADMINISTRATION10,Request For Payment FINAL_APPROVED by SUPERVISOR11,242
+Request For Payment APPROVED by ADMINISTRATION10,Request For Payment APPROVED by BUDGET OWNER14,170
+Request For Payment REJECTED by PRE_APPROVER25,Request For Payment REJECTED by EMPLOYEE26,24
+Request For Payment REJECTED by EMPLOYEE26,Request For Payment SUBMITTED by EMPLOYEE27,24
+Request For Payment SUBMITTED by EMPLOYEE27,Request For Payment APPROVED by PRE_APPROVER28,24
+Request For Payment SUBMITTED by EMPLOYEE27,Request For Payment REJECTED by ADMINISTRATION42,3
+Request For Payment SUBMITTED by EMPLOYEE27,Request For Payment REJECTED by ADMINISTRATION18,1
+Request For Payment APPROVED by PRE_APPROVER28,Request For Payment FINAL_APPROVED by SUPERVISOR2,24
+Request For Payment APPROVED by PRE_APPROVER8,Request For Payment FINAL_APPROVED by SUPERVISOR2,365
+Request For Payment APPROVED by PRE_APPROVER8,Request For Payment REJECTED by SUPERVISOR16,2
+Request For Payment APPROVED by PRE_APPROVER8,Request For Payment FINAL_APPROVED by SUPERVISOR51,2
+Request For Payment REJECTED by ADMINISTRATION6,Request For Payment REJECTED by EMPLOYEE7,721
+Request For Payment REJECTED by ADMINISTRATION6,Request For Payment SUBMITTED by EMPLOYEE49,3
+Request For Payment REJECTED by ADMINISTRATION6,Request For Payment SUBMITTED by EMPLOYEE27,4
+Request For Payment REJECTED by ADMINISTRATION6,Request For Payment REJECTED by EMPLOYEE32,2
+Request For Payment REJECTED by ADMINISTRATION6,Request For Payment REJECTED by EMPLOYEE54,2
+Request For Payment REJECTED by ADMINISTRATION6,Request For Payment SUBMITTED by EMPLOYEE9,2
+Request For Payment FINAL_APPROVED by SUPERVISOR2,Request Payment3,5720
+Request For Payment FINAL_APPROVED by SUPERVISOR2,Request For Payment REJECTED by MISSING30,51
+Request For Payment REJECTED by MISSING30,Request For Payment SUBMITTED by EMPLOYEE52,8
+Request For Payment REJECTED by MISSING30,Request For Payment SUBMITTED by EMPLOYEE58,5
+Request For Payment REJECTED by MISSING30,Request For Payment SUBMITTED by EMPLOYEE60,4
+Request For Payment SUBMITTED by EMPLOYEE60,Request For Payment APPROVED by PRE_APPROVER61,4
+Request For Payment APPROVED by PRE_APPROVER61,Request For Payment FINAL_APPROVED by SUPERVISOR62,4
+Request For Payment FINAL_APPROVED by SUPERVISOR62,Request Payment63,4
+Request Payment63,Payment Handled64,4
+Request For Payment SUBMITTED by EMPLOYEE58,Request For Payment APPROVED by PRE_APPROVER59,5
+Request For Payment APPROVED by PRE_APPROVER59,Request For Payment FINAL_APPROVED by SUPERVISOR51,5
+Request For Payment APPROVED by ADMINISTRATION1,Request For Payment FINAL_APPROVED by SUPERVISOR2,3011
+Request For Payment APPROVED by ADMINISTRATION1,Request For Payment APPROVED by BUDGET OWNER5,1799
+Request For Payment APPROVED by ADMINISTRATION1,Request For Payment REJECTED by SUPERVISOR16,88
+Request For Payment APPROVED by ADMINISTRATION1,Request For Payment REJECTED by BUDGET OWNER29,44
+Request For Payment APPROVED by ADMINISTRATION1,Request For Payment APPROVED by SUPERVISOR35,17
+Request For Payment APPROVED by ADMINISTRATION1,Request For Payment REJECTED by SUPERVISOR38,2
+Request For Payment REJECTED by BUDGET OWNER29,Request For Payment REJECTED by EMPLOYEE7,44
+Request For Payment APPROVED by BUDGET OWNER5,Request For Payment FINAL_APPROVED by SUPERVISOR2,1762
+Request For Payment APPROVED by BUDGET OWNER5,Request For Payment REJECTED by SUPERVISOR38,29
+Request For Payment APPROVED by BUDGET OWNER5,Request For Payment APPROVED by SUPERVISOR35,7
+Request For Payment APPROVED by BUDGET OWNER5,Request For Payment REJECTED by SUPERVISOR80,1
+Start:Request For Payment SUBMITTED by EMPLOYEE0,6776
+Start:Request For Payment SAVED by EMPLOYEE15,72
+End:Request For Payment SAVED by EMPLOYEE15,72
+End:Payment Handled64,7
+End:Payment Handled74,4
+End:Payment Handled24,65
+End:Payment Handled4,5740
+End:Payment Handled13,466
+End:Request For Payment FINAL_APPROVED by SUPERVISOR51,2
+End:Request For Payment REJECTED by MISSING57,6
+End:Request For Payment SAVED by EMPLOYEE81,2
+End:Request For Payment REJECTED by EMPLOYEE32,38
+End:Request For Payment FINAL_APPROVED by SUPERVISOR11,1
+End:Request For Payment REJECTED by EMPLOYEE7,393
+End:Request For Payment REJECTED by EMPLOYEE53,6
+End:Request For Payment REJECTED by EMPLOYEE43,5
+End:Request For Payment FINAL_APPROVED by SUPERVISOR2,7
+End:Request For Payment REJECTED by MISSING30,34

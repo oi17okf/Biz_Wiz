@@ -65,6 +65,10 @@ struct unique_trace {
     bool operator<(const unique_trace &other) const {
         return count > other.count;  // Ascending order
     }
+
+    //bool operator<(const unique_trace &other) const {
+        //return shorthand.size() > other.shorthand.size();
+    //}
 };
 
 struct node {
@@ -85,6 +89,8 @@ struct node {
     int end_count = 0;
 
     int deleted = 0;
+
+    int used = 1;
 
     float time_diff;
 
@@ -276,6 +282,7 @@ void export_data(master_trace& mt, std::string ii) {
     std::vector<int> node_indexes;
     int parent_index = -1;
     node_indexes.insert(node_indexes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
+    std::vector<int> visited;
 
     std::vector<int> exit_node_indexes;
 
@@ -287,12 +294,13 @@ void export_data(master_trace& mt, std::string ii) {
         parent_index = node_indexes.back();
         node_indexes.pop_back();
 	    node& parent = mt.nodes_container[parent_index];
+        visited.push_back(parent_index);
 
         std::string parent_s = parent.name + std::to_string(parent.creationID);
         std::string timestamp = seconds_to_timedelta_string(parent.average_time);
         std::string timestamp_out = parent_s + " | " + timestamp;
 
-        if(std::find(timestamp_strings.begin(), timestamp_strings.end(), timestamp_out) == timestamp_strings.end()) {
+        if (std::find(timestamp_strings.begin(), timestamp_strings.end(), timestamp_out) == timestamp_strings.end()) {
             timestamps << timestamp_out << std::endl;
             timestamp_strings.push_back(timestamp_out);
         }
@@ -301,20 +309,25 @@ void export_data(master_trace& mt, std::string ii) {
 
         for (int i = 0; i < parent.next_nodes.size(); i++) {
 
-  	    int kid_index = parent.next_nodes[i];
-	    node& kid = mt.nodes_container[kid_index];
+      	    int kid_index = parent.next_nodes[i];
+    	    node& kid = mt.nodes_container[kid_index];
             
             std::string kid_s    = kid.name + std::to_string(kid.creationID);
             std::string count    = std::to_string(parent.next_nodes_counts[i]);
             std::string connection_out = parent_s + "," + kid_s + "," + count;
 
 
-            if(std::find(connection_strings.begin(), connection_strings.end(), connection_out) == connection_strings.end()) {
+            if (std::find(connection_strings.begin(), connection_strings.end(), connection_out) == connection_strings.end()) {
                 connections << connection_out << std::endl;
                 connection_strings.push_back(connection_out);
+            }
+
+            if (std::find(visited.begin(), visited.end(), kid_index) == visited.end()) {
+
+                node_indexes.insert(node_indexes.end(), kid_index);
+                visited.push_back(kid_index);
             }            
 
-            node_indexes.insert(node_indexes.begin(), kid_index);
         }
 
         if (parent.end_count != 0) {
@@ -337,7 +350,7 @@ void export_data(master_trace& mt, std::string ii) {
     // Start nodes
     for (int i : mt.base_nodes) {
 
-	node& n = mt.nodes_container[i];
+	   node& n = mt.nodes_container[i];
         std::string start_output = n.name + std::to_string(n.creationID);
         std::string count    = std::to_string(n.event_count);
         connections << "Start:" << start_output << "," << count << std::endl;
@@ -347,7 +360,7 @@ void export_data(master_trace& mt, std::string ii) {
     // End nodes
     for (int i : exit_node_indexes) {
 
-	node& n = mt.nodes_container[i];
+	    node& n = mt.nodes_container[i];
         std::string output = n.name + std::to_string(n.creationID);
         std::string count  = std::to_string(n.end_count);
         connections << "End:" << output << "," << count << std::endl;
@@ -497,49 +510,87 @@ std::vector<unique_trace> step_1_calc_unique_traces(std::vector<trace> &traces) 
     return unique_traces;
 }
 
+
+
+int loop(std::vector<int> &node_indexes, std::vector<int> &visited, master_trace &mt) {
+
+    int parent_index = node_indexes.back();
+    visited.insert(visited.begin(), parent_index);
+    
+    const node& parent = mt.nodes_container[parent_index];
+
+    for (int i : parent.next_nodes) {
+
+        //loop found
+        if (std::find(node_indexes.begin(), node_indexes.end(), i) != node_indexes.end()) {
+
+            return 1;
+        }
+
+        if (std::find(visited.begin(), visited.end(), i) == visited.end()) {
+
+            node_indexes.insert(node_indexes.end(), i);
+            if (loop(node_indexes, visited, mt)) {
+                return 1;
+            }
+        }
+
+    }
+
+    if (parent.extra_node != -1) {
+
+        if (std::find(node_indexes.begin(), node_indexes.end(), parent.extra_node) != node_indexes.end()) {
+
+            return 1;
+        }
+
+        if (std::find(visited.begin(), visited.end(), parent.extra_node) == visited.end()) {
+
+            node_indexes.insert(node_indexes.end(), parent.extra_node);
+
+            if (loop(node_indexes, visited, mt)) {
+                return 1;
+            }
+        }
+            
+    }
+
+    node_indexes.pop_back();
+
+    return 0;
+
+}
+
 //1 if loop exists
-//change to dfs search dummy
 int check_for_loops(master_trace &mt) {
 
-    int max_val = mt.last_count * 5;
-
     std::vector<int> node_indexes;
+    std::vector<int> visited;
     node_indexes.insert(node_indexes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
-    int parent_index = -1;
-
-    int count = 0;
 
     while(!node_indexes.empty()) {
 
-	count++;
-	if (count >= max_val) { return -1; } // assume we found a loop
+        if (loop(node_indexes, visited, mt)) {
 
-	parent_index = node_indexes.back();
-	node_indexes.pop_back();
-	const node& parent = mt.nodes_container[parent_index];
-
-	node_indexes.insert(node_indexes.begin(), parent.next_nodes.begin(), parent.next_nodes.end());
-        
-	if (parent.extra_node != -1) {
-            node_indexes.insert(node_indexes.begin(), parent.extra_node);
-	}
-
+            return 1;
+        }
     }
-    
-    mt.last_count = count;
 
     return 0;
 }
 
 //extra node is solved by check
 //done
-int check_valid_merge(master_trace& mt, float next_time) {
+int check_valid_merge(master_trace& mt, float next_time, unique_trace t, int trace_index, int skip_loop) {
 
-    if (check_for_loops(mt)) { return -1; }
+    if (!skip_loop) {
+        if (check_for_loops(mt)) { return -1; }
+    }
 
     int check_next_time = 1;
     if (next_time < 0) { check_next_time = 0; }
 
+    std::vector<int> visited;
     std::vector<int> node_indexes;
     node_indexes.insert(node_indexes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
     int parent_index = -1;
@@ -549,6 +600,19 @@ int check_valid_merge(master_trace& mt, float next_time) {
         parent_index = node_indexes.back(); 
         node_indexes.pop_back();
         const node& parent = mt.nodes_container[parent_index];	
+        visited.push_back(parent_index);
+
+        float parent_time = parent.average_time;
+        if (parent.is_attempting_merge) {
+
+            parent_time = merge_time(parent.event_count, parent.average_time, 
+                                     parent.extra_event_count, parent.extra_average_time);
+        }
+
+        if (check_next_time && parent.is_attempting_merge && parent_time > next_time) {
+            //log("rejected because next time");
+            return 0;
+        }
 
         for (int i : parent.next_nodes) {
 
@@ -561,16 +625,26 @@ int check_valid_merge(master_trace& mt, float next_time) {
                                       kid.extra_event_count, kid.extra_average_time);
             }
 
-            float parent_time = parent.average_time;
-            if (parent.is_attempting_merge) {
-
-                parent_time = merge_time(parent.event_count, parent.average_time, 
-                                         parent.extra_event_count, parent.extra_average_time);
-            }
-
             if (kid_time < parent_time) {
 
                 if (parent.is_attempting_merge) {
+
+                    if (kid.used) { return -1; }
+                    int found = 0;
+                    for (int j = trace_index + 1; j < t.shorthand.size(); j++) {
+                        if (kid.event_type == t.shorthand[j]) { 
+                            float new_time = merge_time(kid.event_count, kid.average_time,
+                                                    t.count, t.times[j]);
+
+                            if (new_time > parent_time) {
+                                found = 1;
+                            } 
+                        }
+                    }
+
+
+                    if (!found) { return -1; }
+
                     //log("           match rejected! - parent attemptin merge");
                     
                     //log("           Offending nodes:");
@@ -582,6 +656,7 @@ int check_valid_merge(master_trace& mt, float next_time) {
 
 		            if (mt.recursion || mt.has_recursed) {
     			        //log("		match rejected. Would have failed but we are recursing");
+                        if (kid.used && parent.used) { return -1; }
     			        return 0;
 		            }
 
@@ -592,24 +667,35 @@ int check_valid_merge(master_trace& mt, float next_time) {
                     export_data(mt, "END");
                     exit(0);
                 }
+                if (parent.used) { return -1; }
+                int found = 0;
+                for (int j = trace_index + 1; j < t.shorthand.size(); j++) {
+                    if (parent.event_type == t.shorthand[j]) { 
+                        float new_time = merge_time(parent.event_count, parent.average_time,
+                                                    t.count, t.times[j]);
+                        if (new_time < kid_time) {
 
+                            found = 1;
+                        } 
+                    }
+                }
+
+                if (!found) { return -1; }
                 //log("           match rejected! - kid attemptin merge");
                 return 0;
             }
 
-            if (check_next_time && parent.is_attempting_merge && parent_time > next_time) {
-                //log("rejected because next time");
-                return 0;
+            
+            if (std::find(visited.begin(), visited.end(), i) == visited.end()) {
+                node_indexes.insert(node_indexes.end(), i);
+                visited.push_back(i);
             }
-  
-            node_indexes.insert(node_indexes.begin(), i);
-
         }
 
 	//this assumes that 1 node is only ever 
         if (parent.extra_node != -1) {
-            node_indexes.insert(node_indexes.begin(), parent.extra_node);
-	    const node& kid = mt.nodes_container[parent.extra_node];
+            
+	        const node& kid = mt.nodes_container[parent.extra_node];
 
             if (!kid.is_attempting_merge) {
                 log("           error - checkvalidmerge");
@@ -625,6 +711,11 @@ int check_valid_merge(master_trace& mt, float next_time) {
                 //log("               kid: " + kid.name + " time: ", kid_time);
                 return 0;
             }
+
+            if (std::find(visited.begin(), visited.end(), parent.extra_node) == visited.end()) {
+                node_indexes.insert(node_indexes.end(), parent.extra_node);
+                visited.push_back(parent.extra_node);
+            }
         }
     }
 
@@ -636,63 +727,45 @@ int check_valid_merge(master_trace& mt, float next_time) {
 //done
 std::vector<int> get_closest_nodes(master_trace &mt, char event_type, float event_time) {
 
-    std::vector<int> node_indexes;
-    node_indexes.insert(node_indexes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
-    int parent_index = -1;
-
     std::vector<int> closest_indexes;
 
-
-    int count = 0;
-    while(!node_indexes.empty()) {
-
-        if (count > 1000) { 
-	        export_data(mt, 999);
-            log("        ERROR - added to many closest nodes, something must be wrong - Exiting");  
-	        exit(0); 
-        }
+    int j = 0;
+    for (node& n : mt.nodes_container) {
         
-        parent_index = node_indexes.back();
-        node_indexes.pop_back();
-        node& parent = mt.nodes_container[parent_index];
-
-        if (parent.event_type == event_type) {
-            parent.time_diff = parent.average_time - event_time;
-            parent.time_diff = parent.time_diff < 0 ? parent.time_diff * -1 : parent.time_diff;
+        if (n.event_type == event_type && n.used == 0) {
+            n.time_diff = n.average_time - event_time;
+            n.time_diff = n.time_diff < 0 ? n.time_diff * -1 : n.time_diff;
 
             int already_exists = 0;
 
             for (int i : closest_indexes) {
 
-                if (i == parent.creationID) { 
+                if (i == n.creationID) { 
                     already_exists = 1; 
                 }
             }
 
             if (!already_exists) { 
-                count++;
 
 		        int place = 0;
 		        for (int i : closest_indexes) {
 
         			float other_diff = mt.nodes_container[i].time_diff;			
-        			if (parent.time_diff > other_diff) {
+        			if (n.time_diff > other_diff) {
         				break;
         			}
 			
 			        place++;
 		        }
 
-                closest_indexes.insert(closest_indexes.begin() + place, parent_index);
+                closest_indexes.insert(closest_indexes.begin() + place, j);
             }
 
         }
 
-        node_indexes.insert(node_indexes.begin(), parent.next_nodes.begin(), parent.next_nodes.end());
+        j++;
 
     }
-
-
 
     return closest_indexes;
 }
@@ -745,13 +818,15 @@ int merge_node(master_trace& mt, int merge_index, int prev_index, std::string sh
     n.extra_average_time  = 0;
     n.unique_traces.push_back(shorthand);
 
+    n.used = 1;
+
     //log("Merged node: " + n.name, n.creationID);
 
     return merge_index;
 }
 
 //done
-int add_new_node(master_trace& mt, const unique_trace& ut, int i, int prev_node_index, int end_node) {
+int add_new_node(master_trace& mt, const unique_trace& ut, int i, int prev_node_index, int end_node, int recursion) {
 
     //log("NEW NODE CREATED - NAME: " + ut.names[i], mt.total_node_count);
 	
@@ -790,13 +865,14 @@ int add_new_node(master_trace& mt, const unique_trace& ut, int i, int prev_node_
         //log("       Added alternate start with name:" + new_node.name);
     }
 
+    if (recursion == 0) { log("Node created - " + new_node.name + std::to_string(new_node.creationID) + " ", new_node.average_time); }
 
     return new_node.creationID;
 }
 
 
 //prev_node is used when creating a new node, since it needs to be tied in to the structure somehow
-int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trace_index) {
+int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trace_index, int size) {
 
     char event_type  = t.events[trace_index];
     std::string name = t.names[trace_index];
@@ -818,6 +894,17 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
     //log("prev_node_index: ", prev_node_index);
 
     int no_matching_nodes = closest_indexes.size();
+    size *= no_matching_nodes;
+    std::string p = "";
+    for (int i = 0; i < trace_index; i++) {
+        p += " ";
+    }
+    p += event_type;
+    p += std::to_string(size);
+    //log(p);
+    //if (size > 10000) { return -1; }
+
+    
 
     while(!closest_indexes.empty()) {
 
@@ -828,11 +915,27 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
         node_ptr.extra_event_count   = event_count;
         node_ptr.extra_average_time  = event_time;
 
+        int skip_loop = 0;
         if (prev_node_index != -1) {
 	       mt.nodes_container[prev_node_index].extra_node = node_index;
+
+           for (int i : mt.nodes_container[prev_node_index].next_nodes) {
+                if (i == mt.nodes_container[prev_node_index].extra_node) {
+                    skip_loop = 1;
+                }
+            }
         }
 
-        can_merge = check_valid_merge(mt, next_time);
+        if (prev_node_index == -1 || end_node) {
+            skip_loop = 1;
+            
+        }
+
+        //if (skip_loop) { log("skippin"); }
+
+                  
+
+        can_merge = check_valid_merge(mt, next_time, t, trace_index, skip_loop);
 
     	//log("can merge: ", can_merge);
 
@@ -852,7 +955,7 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
     	    merge_node(mt_copy, node_index, prev_node_index, shorthand, end_node);
     	    //recursion
     	    //log("R E C U R S I O N !-----------------------------------------------------------------");
-            int res_index = merge_letter(mt_copy, t, node_index, trace_index + 1);
+            int res_index = merge_letter(mt_copy, t, node_index, trace_index + 1, size);
     	    //log("E N D OF R E C U R S I O N&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"); 
 
             if (res_index != -1) {
@@ -889,7 +992,7 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
 
     if (has_merged == 0) {
 
-        merged_index = add_new_node(mt, t, trace_index, prev_node_index, end_node);
+        merged_index = add_new_node(mt, t, trace_index, prev_node_index, end_node, mt.recursion);
 
     	if (mt.recursion) { 
     		merged_index = -1; 
@@ -902,6 +1005,13 @@ int merge_letter(master_trace &mt, unique_trace t, int prev_node_index, int trac
 }
 
 
+void clear_used_nodes(master_trace& mt) {
+
+    for (node& n : mt.nodes_container) {
+        n.used = 0;
+    }
+}
+
 //done
 void merge_master_trace(master_trace& mt, unique_trace t, int detailed) {
 
@@ -909,10 +1019,10 @@ void merge_master_trace(master_trace& mt, unique_trace t, int detailed) {
     mt.has_recursed = 0;
     for (int i = 0; i < t.events.size(); i++) {
 
-
+        clear_used_nodes(mt);
         log("   merging mastertrace with " + t.names[i]);
 
-        prev_node_index = merge_letter(mt, t, prev_node_index, i);
+        prev_node_index = merge_letter(mt, t, prev_node_index, i, 1);
 
         if (detailed) {
             std::string s = "STEP" + std::to_string(i + 1);
@@ -943,7 +1053,7 @@ master_trace step_2_build_graph(std::vector<unique_trace> &unique_traces) {
     for (int i = 0; i < base_trace.events.size(); i++) {
 
         int end_node = i == base_trace.events.size() - 1 ? 1 : 0;    
-        prev_node_index = add_new_node(mt, base_trace, i, prev_node_index, end_node);
+        prev_node_index = add_new_node(mt, base_trace, i, prev_node_index, end_node, 0);
 
     }
 
@@ -954,7 +1064,7 @@ master_trace step_2_build_graph(std::vector<unique_trace> &unique_traces) {
     log("going through remaining traces");
     for (int i = 1; i < SIZE; i++) {
         int detailed = 0;
-        if (i == 11) { detailed = 1; }
+        if (i == 58) { detailed = 1; }
         log("");
         log("");
         log("");
@@ -1131,7 +1241,7 @@ void clear_prev_nodes(master_trace& mt) {
 
         parent_index = node_indexes.back();
         node_indexes.pop_back();
-	node& parent = mt.nodes_container[parent_index];
+	    node& parent = mt.nodes_container[parent_index];
 
         parent.prev_nodes.clear();
 
@@ -1149,7 +1259,7 @@ void set_prev_nodes(master_trace& mt) {
     while(!node_indexes.empty()) {
 
         parent_index = node_indexes.back();
-	node& parent = mt.nodes_container[parent_index];
+	    node& parent = mt.nodes_container[parent_index];
         node_indexes.pop_back();
 
         for (int kid_index : parent.next_nodes) {
@@ -1159,7 +1269,7 @@ void set_prev_nodes(master_trace& mt) {
             int already_exists = 0;
 
             for (int prev_index : kid.prev_nodes) {
-		node& prev_node = mt.nodes_container[prev_index];
+		        node& prev_node = mt.nodes_container[prev_index];
                 if (prev_node.creationID == parent.creationID) {
                     already_exists = 1;
                 }
@@ -1207,12 +1317,12 @@ void main_algorithm(event_log &data, std::string name) {
 
         log("ShortHand: " + ut.shorthand + " i: ", i);
 
-        for (int i = 0; i < ut.names.size(); i++) {
+        //for (int i = 0; i < ut.names.size(); i++) {
 
-            std::string name = ut.names[i];
-            float time = ut.times[i];
-            log(name + ": ", time);
-        }
+          //  std::string name = ut.names[i];
+            //float time = ut.times[i];
+            //log(name + ": ", time);
+        //}
 
     }
  
@@ -1225,6 +1335,7 @@ void main_algorithm(event_log &data, std::string name) {
 
     //error checking
     std::vector<int> node_indexes;
+    std::vector<int> visited;
     int parent_index = -1;
     node_indexes.insert(node_indexes.begin(), mt.base_nodes.begin(), mt.base_nodes.end());
 
@@ -1233,16 +1344,17 @@ void main_algorithm(event_log &data, std::string name) {
 
 
         parent_index = node_indexes.back();
-	node& parent = mt.nodes_container[parent_index];
+	    node& parent = mt.nodes_container[parent_index];
         node_indexes.pop_back();
+        visited.push_back(parent_index);
 
         int sum = 0;
         for (int prev_index : parent.prev_nodes) {
-	    node& prev = mt.nodes_container[prev_index];
+	        node& prev = mt.nodes_container[prev_index];
             //log(prev->name);
             for (int i = 0; i < prev.next_nodes.size(); i++) {
                 int prev_next_index = prev.next_nodes[i];
-		node& prev_next = mt.nodes_container[prev_next_index];
+		        node& prev_next = mt.nodes_container[prev_next_index];
                 //log("?: " + prev_next->name);
                 if (prev_next.creationID == parent.creationID) {
                     sum += prev.next_nodes_counts[i];
@@ -1257,7 +1369,15 @@ void main_algorithm(event_log &data, std::string name) {
             log("eventcount: ", parent.event_count);
         }
 
-    	node_indexes.insert(node_indexes.begin(), parent.next_nodes.begin(), parent.next_nodes.end());
+        for (int i : parent.next_nodes) {
+
+            if (std::find(visited.begin(), visited.end(), i) == visited.end()) {
+
+                node_indexes.insert(node_indexes.end(), i);
+                visited.push_back(i);
+            }
+        }
+
     
     }
 
@@ -1278,7 +1398,7 @@ void main_algorithm(event_log &data, std::string name) {
 //done
 int main(int argc, char* argv[]) {
 
-    std::string event_log_filename = "Exempel/RequestForPayment.xes_";
+    std::string event_log_filename = "Exempel/DomesticDeclarations.xes_";
 
     if (argc >= 2) { event_log_filename = argv[1]; }
 

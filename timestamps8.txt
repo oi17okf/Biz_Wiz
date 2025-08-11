@@ -1,17 +1,19 @@
-Request For Payment SAVED by EMPLOYEE15 | 0 days 00:00:00
-Request For Payment SUBMITTED by EMPLOYEE0 | 0 days 00:00:00
-Request For Payment APPROVED by ADMINISTRATION1 | 0 days 19:29:27
-Request For Payment FINAL_APPROVED by SUPERVISOR2 | 4 days 04:54:42
-Request For Payment REJECTED by ADMINISTRATION6 | 0 days 16:47:26
-Request For Payment APPROVED by PRE_APPROVER8 | 0 days 16:18:18
-Request For Payment APPROVED by BUDGET OWNER5 | 3 days 18:26:29
-Request For Payment REJECTED by SUPERVISOR16 | 3 days 08:49:33
-Request Payment3 | 7 days 15:59:07
-Request For Payment REJECTED by EMPLOYEE7 | 3 days 16:15:56
-Payment Handled4 | 11 days 04:30:38
-Request For Payment SUBMITTED by EMPLOYEE9 | 10 days 17:57:08
-Request For Payment APPROVED by ADMINISTRATION10 | 10 days 19:54:09
-Request For Payment FINAL_APPROVED by SUPERVISOR11 | 13 days 14:22:38
-Request For Payment APPROVED by BUDGET OWNER14 | 12 days 02:40:16
-Request Payment12 | 17 days 21:22:37
-Payment Handled13 | 21 days 14:42:08
+Declaration SAVED by EMPLOYEE17 | 0 days 00:00:00
+Declaration SUBMITTED by EMPLOYEE0 | 0 days 00:00:00
+Declaration REJECTED by ADMINISTRATION7 | 4 days 23:38:25
+Declaration REJECTED by EMPLOYEE8 | 7 days 02:44:30
+Declaration SUBMITTED by EMPLOYEE9 | 11 days 08:00:34
+Declaration APPROVED by ADMINISTRATION10 | 11 days 08:33:11
+Declaration APPROVED by BUDGET OWNER14 | 14 days 07:37:57
+Declaration FINAL_APPROVED by SUPERVISOR15 | 17 days 04:25:02
+Request Payment16 | 20 days 07:45:45
+Payment Handled13 | 20 days 09:09:48
+Declaration FINAL_APPROVED by SUPERVISOR11 | 12 days 10:39:15
+Request Payment12 | 15 days 08:40:08
+Declaration APPROVED by PRE_APPROVER6 | 1 days 04:33:31
+Declaration FINAL_APPROVED by SUPERVISOR2 | 3 days 14:53:13
+Request Payment3 | 6 days 18:46:49
+Payment Handled4 | 10 days 08:38:16
+Declaration APPROVED by ADMINISTRATION1 | 1 days 06:47:37
+Declaration REJECTED by SUPERVISOR18 | 4 days 04:49:11
+Declaration APPROVED by BUDGET OWNER5 | 3 days 00:42:05
